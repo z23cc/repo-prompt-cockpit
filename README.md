@@ -4,7 +4,31 @@ Repo Prompt Cockpit is a read-only desktop companion for Repo Prompt.
 
 It gives you a high-signal control plane for live sessions, cross-workspace activity, sub-agent trees, workspace/context metadata, diagnostics, and a minimal always-on-top monitoring mode — without collecting transcript or log bodies by default.
 
+![Repo Prompt Cockpit logo](src/renderer/assets/repoprompt-cockpit-logo.png)
+
 The goal is not to replace Repo Prompt. The goal is to make Repo Prompt activity easier to monitor, demo, review, and discuss from outside the primary authoring surface.
+
+## Preview
+
+### Desktop cockpit — live provider
+
+![Repo Prompt Cockpit desktop live view](docs/images/cockpit-desktop-live.png)
+
+### Minimal always-on-top mode — live provider
+
+![Repo Prompt Cockpit minimal live view](docs/images/cockpit-minimal-live.png)
+
+### Desktop cockpit — fixture/demo mode
+
+![Repo Prompt Cockpit desktop fixture view](docs/images/cockpit-desktop-fixture.png)
+
+### Minimal mode — fixture/demo mode
+
+![Repo Prompt Cockpit minimal fixture view](docs/images/cockpit-minimal-fixture.png)
+
+### Menu bar popup
+
+![Repo Prompt Cockpit tray popup](docs/images/cockpit-tray-popup-fixture.png)
 
 ## Why this exists
 
@@ -56,7 +80,7 @@ Cockpit currently supports:
 - tray monitoring (`RPC …`) with compact grouped sections
 - desktop cockpit window
 - minimal always-on-top mode
-- cross-workspace snapshot summary
+- cross-workspace/process snapshot summary
 - session cards and status filters
 - sub-agent/session tree presentation
 - Repo Prompt tab/context metadata
