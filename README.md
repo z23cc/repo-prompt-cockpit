@@ -18,6 +18,12 @@ Click any image below to open it full size.
 | --- | --- | --- | --- |
 | [<img src="docs/images/preview-live-mini.png" alt="Repo Prompt Cockpit live minimal mode" width="220" />](docs/images/preview-live-mini.png) | [<img src="docs/images/preview-demo-cockpit.png" alt="Repo Prompt Cockpit desktop demo mode" width="220" />](docs/images/preview-demo-cockpit.png) | [<img src="docs/images/preview-demo-mini.png" alt="Repo Prompt Cockpit minimal demo mode" width="220" />](docs/images/preview-demo-mini.png) | [<img src="docs/images/preview-menu-popup.png" alt="Repo Prompt Cockpit menu bar popup" width="120" />](docs/images/preview-menu-popup.png) |
 
+## Origin
+
+Repo Prompt Cockpit started from a simple operator problem: once I was running 6–7 Repo Prompt windows across multiple projects — often with more than one worktree per project — the bottleneck stopped being authoring and became monitoring.
+
+This project began as a prototype to answer a practical question: how much of a useful monitoring surface could be built from Repo Prompt's existing signals, especially `rp-cli`, without trying to replace Repo Prompt itself?
+
 ## Why this exists
 
 [Repo Prompt](https://repoprompt.com/) is the source of truth for context, selections, code maps, session state, and workflow execution.
