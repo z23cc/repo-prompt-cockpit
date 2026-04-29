@@ -22,7 +22,7 @@ for (const heading of ['Focus next', 'Sessions', 'Workspaces', 'Capabilities', '
   if (!labels.includes(heading)) throw new Error(`${heading} menu section missing.`);
 }
 if (!labels.includes('Open Cockpit')) throw new Error('Open Cockpit menu item missing.');
-if (!labels.includes('Enter Minimal mode')) throw new Error('Minimal mode menu item missing.');
+if (!labels.includes('Pin mini cockpit')) throw new Error('Minimal mode menu item missing.');
 if (!labels.includes('Copy summary')) throw new Error('Copy summary menu item missing.');
 if (!labels.includes('Use live rp-cli mode')) throw new Error('Live provider switch menu item missing in fixture mode.');
 if (!labels.some((label) => label.includes('[fixture]'))) throw new Error('Menu did not label fixture-backed rows.');

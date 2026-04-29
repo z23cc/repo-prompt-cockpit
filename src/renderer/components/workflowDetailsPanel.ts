@@ -17,14 +17,14 @@ export function workflowDetailsPanel(options: WorkflowDetailsPanelOptions): HTML
     return planPreviewShell(options);
   }
 
+  const directTab = options.dashboard.activityPanel.tabs.find((entry) => entry.key === tab);
   const tabs = workflowTabsFromActivityTabs(options.dashboard.activityPanel.tabs);
-  const descriptor = tabs.find((entry) => entry.key === tab);
-  const detail =
-    descriptor?.detail ?? 'No data available for this view in the read-only provider snapshot.';
+  const descriptor = tabs.find((entry) => entry.key === tab) ?? directTab;
+  const detail = descriptor?.detail ?? 'No data available for this view in the read-only provider snapshot.';
 
   return el('section', { class: 'workflow-detail-panel', attrs: { 'aria-label': `${descriptor?.label ?? tab} panel` } }, [
     el('header', { class: 'workflow-detail-head' }, [
-      el('div', { class: 'workflow-detail-title' }, [`${descriptor?.label ?? tab.toUpperCase()} · unavailable`]),
+      el('div', { class: 'workflow-detail-title' }, [`${descriptor?.label ?? titleCase(tab)} · unavailable`]),
       el('div', { class: 'workflow-detail-state' }, [
         el('span', { class: 'badge badge-unavailable' }, ['unavailable'])
       ])
@@ -86,4 +86,8 @@ function planPreviewShell(options: WorkflowDetailsPanelOptions): HTMLElement {
       'Deterministic preview. This view shows provider-reported session counts only.'
     ])
   ]);
+}
+
+function titleCase(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }

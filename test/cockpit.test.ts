@@ -186,23 +186,18 @@ describe('workflow detail panels', () => {
 });
 
 describe('workflow tab descriptors', () => {
-  it('keeps Plan/Activity available and labels Artifacts/Logs/Results unavailable until provider supports them', () => {
+  it('keeps only Plan and Activity in the primary toolbar descriptor list', () => {
     const dashboard = createControlPlaneDashboard(baseSnapshot);
     const tabs = workflowTabsFromActivityTabs(dashboard.activityPanel.tabs);
-    expect(tabs.map((tab) => tab.key)).toEqual(['plan', 'activity', 'artifacts', 'logs', 'results']);
-    expect(tabs.find((tab) => tab.key === 'plan')?.available).toBe(true);
-    expect(tabs.find((tab) => tab.key === 'activity')?.available).toBe(true);
-    expect(tabs.find((tab) => tab.key === 'artifacts')?.available).toBe(false);
-    expect(tabs.find((tab) => tab.key === 'logs')?.available).toBe(false);
-    expect(tabs.find((tab) => tab.key === 'results')?.available).toBe(false);
+    expect(tabs.map((tab) => tab.key)).toEqual(['plan', 'activity']);
+    expect(tabs.every((tab) => tab.available)).toBe(true);
   });
 
-  it('uses the provider-supplied detail strings for unavailable tabs (no fabricated copy)', () => {
+  it('keeps provider-supplied unavailable tabs parked in dashboard state (not fabricated in toolbar)', () => {
     const dashboard = createControlPlaneDashboard(baseSnapshot);
-    const tabs = workflowTabsFromActivityTabs(dashboard.activityPanel.tabs);
     expect(dashboard.activityPanel.tabs.map((tab) => tab.key)).not.toContain('diff');
-    expect(tabs.find((tab) => tab.key === 'logs')?.detail).toContain('not called');
-    expect(tabs.find((tab) => tab.key === 'artifacts')?.detail).toContain('not reported');
+    expect(dashboard.activityPanel.tabs.find((tab) => tab.key === 'logs')?.detail).toContain('not called');
+    expect(dashboard.activityPanel.tabs.find((tab) => tab.key === 'artifacts')?.detail).toContain('not reported');
   });
 });
 

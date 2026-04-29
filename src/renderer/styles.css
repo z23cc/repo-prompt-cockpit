@@ -643,6 +643,26 @@ a {
   justify-content: space-between;
 }
 
+.workflow-toolbar-row.row-secondary {
+  align-items: center;
+  gap: 0.4rem;
+  padding-top: 0.1rem;
+}
+
+.workflow-overview-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.pill-overview {
+  background: rgba(10, 132, 255, 0.08);
+  border: 1px solid rgba(10, 132, 255, 0.12);
+  color: var(--text);
+}
+
 .workflow-title-block {
   display: flex;
   flex-direction: column;

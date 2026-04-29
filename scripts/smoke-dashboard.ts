@@ -56,15 +56,12 @@ if (!blockedItems.every((item) => item.state === 'blocked')) {
 }
 
 const tabs = workflowTabsFromActivityTabs(dashboard.activityPanel.tabs);
-const expectedKeys = ['plan', 'activity', 'artifacts', 'logs', 'results'];
+const expectedKeys = ['plan', 'activity'];
 if (tabs.map((tab) => tab.key).join(',') !== expectedKeys.join(',')) {
-  throw new Error('Workflow tabs must be Plan/Activity/Artifacts/Logs/Results in that order.');
+  throw new Error('Workflow tabs must expose only Plan and Activity in the primary toolbar.');
 }
-const unavailableTabs = tabs.filter((tab) => !tab.available).map((tab) => tab.key);
-for (const key of ['artifacts', 'logs', 'results'] as const) {
-  if (!unavailableTabs.includes(key)) {
-    throw new Error(`${key} tab must be honestly labeled unavailable until provider supports it.`);
-  }
+if (tabs.some((tab) => !tab.available)) {
+  throw new Error('Primary workflow tabs must all be available. Unsupported tabs should be parked outside the primary toolbar.');
 }
 
 const orchestrator = dashboard.implementationPlan.items.find(
@@ -91,5 +88,5 @@ if (!fixtureParent.children.some((child) => child.id === 'fixture-child-dashboar
 
 console.log(
   `Dashboard smoke passed for ${dashboard.providerLabel} with ${dashboard.statusCounts.sessions} sessions, ` +
-    `tree mode ${dashboard.sessionTree.mode}, and ${unavailableTabs.length} honestly-unavailable workflow tabs.`
+    `tree mode ${dashboard.sessionTree.mode}, and ${tabs.length} primary workflow tabs.`
 );

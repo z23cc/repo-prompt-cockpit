@@ -26,7 +26,7 @@ describe('tray menu', () => {
       expect.arrayContaining(['Focus next', 'Sessions', 'Workspaces', 'Capabilities', 'Diagnostics', 'Actions', 'Open Cockpit', 'Copy summary'])
     );
     expect(labels).toContain('Use live rp-cli mode');
-    expect(labels).toContain('Enter Minimal mode');
+    expect(labels).toContain('Pin mini cockpit');
     expect(labels.some((label) => label.includes('[fixture]'))).toBe(true);
     expect(labels.some((label) => label.startsWith('Waiting'))).toBe(true);
     expect(labels.some((label) => label.startsWith('Running'))).toBe(true);
@@ -81,7 +81,7 @@ describe('tray menu', () => {
     expect(labels).toContain('[observed] RepoPrompt-control-plane');
     expect(labels).toContain('[observed] warning: session_status_requires_binding');
     expect(labels).toContain('Open Cockpit');
-    expect(labels).toContain('Return to Desktop mode');
+    expect(labels).toContain('Restore full cockpit');
     expect(labels).toContain('Use fixture demo mode');
   });
 });

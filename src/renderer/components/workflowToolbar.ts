@@ -34,7 +34,7 @@ export interface WorkflowToolbarOptions {
   windowMode: WindowMode;
 }
 
-const WORKFLOW_TAB_ORDER: WorkflowTabKey[] = ['plan', 'activity', 'artifacts', 'logs', 'results'];
+const PRIMARY_WORKFLOW_TAB_ORDER: WorkflowTabKey[] = ['plan', 'activity'];
 
 const WORKFLOW_TAB_DEFAULTS: Record<WorkflowTabKey, Omit<WorkflowTabDescriptor, 'key'>> = {
   plan: {
@@ -66,7 +66,7 @@ const WORKFLOW_TAB_DEFAULTS: Record<WorkflowTabKey, Omit<WorkflowTabDescriptor, 
 
 export function workflowTabsFromActivityTabs(tabs: ActivityPanelTab[]): WorkflowTabDescriptor[] {
   const byKey = new Map(tabs.map((tab) => [tab.key, tab]));
-  return WORKFLOW_TAB_ORDER.map((key) => {
+  return PRIMARY_WORKFLOW_TAB_ORDER.map((key) => {
     const tab = byKey.get(key);
     const fallback = WORKFLOW_TAB_DEFAULTS[key];
     return {
@@ -108,11 +108,34 @@ export function workflowToolbar(
         windowModeButton(options.windowMode, handlers)
       ])
     ]),
+    snapshotOverview(options),
     el(
       'div',
       { class: 'workflow-tabs', attrs: { role: 'tablist', 'aria-label': 'Workflow views' } },
       tabs.map((tab) => workflowTab(tab, options.activeTab, handlers))
     )
+  ]);
+}
+
+function snapshotOverview(options: WorkflowToolbarOptions): HTMLElement {
+  const workspaces = options.dashboard.workspaces.length;
+  const contexts = options.dashboard.workspaces.reduce((count, workspace) => count + workspace.contextTabs.length, 0);
+  const sessions = options.dashboard.statusCounts.sessions;
+  const active =
+    options.dashboard.statusCounts.running +
+    options.dashboard.statusCounts.waiting +
+    options.dashboard.statusCounts.blocked;
+
+  const pills = [
+    `${workspaces} workspace${workspaces === 1 ? '' : 's'}`,
+    `${sessions} session${sessions === 1 ? '' : 's'}`,
+    `${active} active`,
+    `${contexts} context tab${contexts === 1 ? '' : 's'}`
+  ];
+
+  return el('div', { class: 'workflow-toolbar-row row-secondary', attrs: { 'aria-label': 'Snapshot overview' } }, [
+    el('span', { class: 'workflow-overview-label' }, ['Snapshot']),
+    ...pills.map((value) => el('span', { class: 'pill pill-overview' }, [value]))
   ]);
 }
 
@@ -185,7 +208,7 @@ function modeSegment(isFixture: boolean, handlers: WorkflowToolbarHandlers): HTM
 }
 
 function windowModeButton(windowMode: WindowMode, handlers: WorkflowToolbarHandlers): HTMLElement {
-  const label = windowMode === 'minimal' ? 'Desktop mode' : 'Minimal mode';
+  const label = windowMode === 'minimal' ? 'Restore full' : 'Pin mini';
   const button = el(
     'button',
     {

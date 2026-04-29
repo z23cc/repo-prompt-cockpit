@@ -24,8 +24,8 @@ const SESSION_GROUPS: Array<{ state: SessionState; label: string }> = [
   { state: 'unknown', label: 'Unknown' }
 ];
 
-const MAX_TRAY_SESSION_ROWS = 10;
-const MAX_TRAY_WORKSPACE_ROWS = 6;
+const MAX_TRAY_SESSION_ROWS = 6;
+const MAX_TRAY_WORKSPACE_ROWS = 4;
 
 export function buildTrayTitle(snapshot: ControlPlaneSnapshot): string {
   const totalSessions = snapshot.sessions.length;
@@ -75,7 +75,7 @@ export function buildTrayTemplate(snapshot: ControlPlaneSnapshot, actions: TrayM
     disabledHeader('Actions'),
     { label: truncateLabel(summary), enabled: false },
     { label: 'Open Cockpit', click: actions.openControlPlane },
-    { label: actions.windowMode === 'minimal' ? 'Return to Desktop mode' : 'Enter Minimal mode', click: actions.toggleWindowMode },
+    { label: actions.windowMode === 'minimal' ? 'Restore full cockpit' : 'Pin mini cockpit', click: actions.toggleWindowMode },
     { label: 'Refresh now', click: actions.refreshNow },
     { label: 'Copy summary', click: actions.copySummary },
     { label: 'Use fixture demo mode', click: actions.switchToFixtureMode, visible: snapshot.provider !== 'demo-fixture' },
@@ -90,23 +90,31 @@ function sessionRows(sessions: AgentSession[]): MenuItemConstructorOptions[] {
     return [disabledRow('[unavailable] No live session rows available')];
   }
 
-  const grouped = SESSION_GROUPS.flatMap(({ state, label }) => {
+  const rows: MenuItemConstructorOptions[] = [];
+  let visibleSessions = 0;
+
+  for (const { state, label } of SESSION_GROUPS) {
     const groupSessions = sessions.filter((session) => session.state === state);
-    if (groupSessions.length === 0) return [];
-    return [
-      disabledRow(`${label} (${groupSessions.length})`),
-      ...groupSessions.map<MenuItemConstructorOptions>((session) => ({
+    if (groupSessions.length === 0) continue;
+    const remainingCapacity = MAX_TRAY_SESSION_ROWS - visibleSessions;
+    if (remainingCapacity <= 0) break;
+    const visibleGroup = groupSessions.slice(0, remainingCapacity);
+    rows.push(disabledRow(`${label} (${groupSessions.length})`));
+    rows.push(
+      ...visibleGroup.map<MenuItemConstructorOptions>((session) => ({
         label: `${observationLabel(session.observation)} ${session.title}`,
         sublabel: sessionSublabel(session),
         enabled: false
       }))
-    ];
-  });
+    );
+    visibleSessions += visibleGroup.length;
+  }
 
-  if (grouped.length <= MAX_TRAY_SESSION_ROWS + SESSION_GROUPS.length) return grouped;
-  const visibleRows = grouped.slice(0, MAX_TRAY_SESSION_ROWS + 2);
-  visibleRows.push(disabledRow(`… ${sessions.length - Math.min(sessions.length, MAX_TRAY_SESSION_ROWS)} more session rows hidden`));
-  return visibleRows;
+  if (sessions.length > visibleSessions) {
+    rows.push(disabledRow(`… ${sessions.length - visibleSessions} more sessions hidden`));
+  }
+
+  return rows;
 }
 
 function workspaceRows(snapshot: ControlPlaneSnapshot): MenuItemConstructorOptions[] {
