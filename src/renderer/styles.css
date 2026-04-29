@@ -126,7 +126,8 @@ a {
   grid-template-areas:
     'sidebar workspace main rail'
     'sidebar workspace composer composer';
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: var(--bg-window);
 }
 
@@ -136,7 +137,7 @@ a {
   grid-template-areas:
     'main'
     'composer';
-  min-height: 100vh;
+  height: 100vh;
 }
 
 .cockpit-loading {
@@ -1238,10 +1239,36 @@ a {
   background: var(--bg-card);
 }
 
+.rail-help-card {
+  gap: 0.55rem;
+}
+
+.rail-help-copy {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.rail-help-steps {
+  margin: 0;
+  padding-left: 1rem;
+  color: var(--text);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.rail-help-steps li + li {
+  margin-top: 0.2rem;
+}
+
 /* ─── Composer / status bar ──────────────────────────────── */
 
 .composer {
   grid-area: composer;
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
   border-top: 1px solid var(--border);
   background: var(--bg-toolbar);
   -webkit-backdrop-filter: saturate(180%) blur(20px);

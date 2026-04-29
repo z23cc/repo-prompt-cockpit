@@ -30,6 +30,7 @@ export function contextRail(
     promptsSection(dashboard.focusItems, options.selectedId, handlers),
     progressSection(dashboard.statusCounts),
     agentsSection(dashboard.sessionTree, options.selectedId, handlers),
+    bodyAccessSection(),
     relatedSection(dashboard.implementationPlan.items, options.selectedId, handlers)
   ]);
 }
@@ -68,7 +69,7 @@ function filesSection(workspaces: WorkspaceView[]): HTMLElement {
 
   return el('section', { class: 'rail-section' }, [
     el('div', { class: 'rail-section-head' }, [
-      el('span', { class: 'rail-section-title' }, ['Workspace/context metadata']),
+      el('span', { class: 'rail-section-title' }, ['Repo Prompt tabs and contexts']),
       el('span', { class: 'rail-section-sub' }, [
         `${visibleWorkspaces.length} shown · ${visibleContextCount} context tabs`
       ])
@@ -202,6 +203,27 @@ function progressSection(counts: StatusCounts): HTMLElement {
       el('div', { class: 'rail-progress-row' }, [
         el('span', { class: 'label' }, ['Active']),
         el('span', { class: 'value' }, [String(counts.running + counts.waiting + counts.blocked)])
+      ])
+    ])
+  ]);
+}
+
+/* ── How to inspect body content ───────────────────────────────── */
+
+function bodyAccessSection(): HTMLElement {
+  return el('section', { class: 'rail-section' }, [
+    el('div', { class: 'rail-section-head' }, [
+      el('span', { class: 'rail-section-title' }, ['Where to inspect bodies']),
+      el('span', { class: 'rail-section-sub' }, ['Repo Prompt is the source of truth'])
+    ]),
+    el('div', { class: 'rail-progress-card rail-help-card' }, [
+      el('p', { class: 'rail-help-copy' }, [
+        'This cockpit intentionally keeps transcript, log, artifact, and result bodies out of the desktop UI by default.'
+      ]),
+      el('ol', { class: 'rail-help-steps' }, [
+        el('li', undefined, ['Use “Repo Prompt tabs and contexts” above to identify the matching workspace, tab, and context.']),
+        el('li', undefined, ['Switch to that session inside Repo Prompt itself.']),
+        el('li', undefined, ['Inspect Logs / Results / Artifacts there when you need body-level detail.'])
       ])
     ])
   ]);

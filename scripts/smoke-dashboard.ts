@@ -9,8 +9,8 @@ const dashboard = createControlPlaneDashboard(snapshot);
 if (!dashboard.isFixture) throw new Error('Fixture dashboard was not marked as fixture.');
 if (dashboard.statusCounts.sessions <= 0) throw new Error('Expected fixture sessions in dashboard status counts.');
 if (dashboard.implementationPlan.items.length <= 0) throw new Error('Expected implementation plan items.');
-if (!dashboard.privacyBanner.detail.includes('not loaded or uploaded by default')) {
-  throw new Error('Privacy banner is missing default no-transcript/log policy text.');
+if (!dashboard.privacyBanner.detail.includes('keeps body content out by default')) {
+  throw new Error('Privacy banner is missing actionable body-content guidance.');
 }
 if (dashboard.activityPanel.tabs.some((tab) => tab.key === 'logs' && tab.available)) {
   throw new Error('Logs tab should be unavailable by default.');

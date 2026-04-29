@@ -182,8 +182,8 @@ export function createControlPlaneDashboard(snapshot: ControlPlaneSnapshot): Con
     })),
     diagnostics: snapshot.diagnostics,
     privacyBanner: {
-      label: 'Read-only monitoring',
-      detail: 'Transcript/log bodies are not loaded or uploaded by default.',
+      label: 'Read-only cockpit',
+      detail: 'Need transcript, log, artifact, or result bodies? Use the matching Repo Prompt tab/context listed in the right rail and inspect those views in Repo Prompt itself. This cockpit keeps body content out by default.',
       severity: 'safe'
     }
   };

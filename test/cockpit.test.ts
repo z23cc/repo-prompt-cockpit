@@ -158,7 +158,7 @@ describe('context rail rendering', () => {
     const rail = contextRail({ dashboard, selectedId: undefined }, { onSelect: () => undefined });
     const text = rail.textContent ?? '';
 
-    expect(text).toContain('Workspace/context metadata');
+    expect(text).toContain('Repo Prompt tabs and contexts');
     expect(text).toContain('T1');
     expect(text).toContain('context fixture-');
     expect(text).toContain('Publish plan context');

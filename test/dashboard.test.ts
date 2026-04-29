@@ -21,7 +21,7 @@ describe('createControlPlaneDashboard', () => {
 
     expect(dashboard.isFixture).toBe(true);
     expect(dashboard.providerLabel).toContain('fixture');
-    expect(dashboard.privacyBanner.detail).toContain('not loaded or uploaded by default');
+    expect(dashboard.privacyBanner.detail).toContain('keeps body content out by default');
     expect(dashboard.activityPanel.tabs.find((tab) => tab.key === 'logs')).toMatchObject({ available: false });
     expect(dashboard.capabilityRows.find((row) => row.field === 'agentLogs')).toMatchObject({
       status: 'unavailable',
