@@ -17,6 +17,7 @@ const MAX_TARGETED_SESSION_ATTEMPTS = 8;
 
 export const READ_ONLY_RP_CLI_COMMANDS = [
   'rp-cli --help',
+  "rp-cli -e 'windows' --raw-json",
   "rp-cli -e 'windows'",
   'rp-cli -c agent_manage -j {"op":"list_sessions","limit":20}',
   'rp-cli -c agent_manage -j {"op":"list_sessions","limit":20,"working_dirs":["/abs/repo"]}',
@@ -42,7 +43,9 @@ export interface ListSessionsAttempt {
   target?: BindingTarget;
 }
 
-type CapabilityDraft = Omit<CapabilityMatrixEntry, 'status' | 'observation'>;
+type CapabilityDraft = Omit<CapabilityMatrixEntry, 'status' | 'observation'> & {
+  defaultStatus?: CapabilityMatrixEntry['status'];
+};
 
 type SessionFailureCode =
   | 'session_status_requires_binding'
@@ -81,9 +84,9 @@ const BASE_CAPABILITIES: CapabilityDraft[] = [
   {
     field: 'windows',
     source: 'RepoPrompt window list',
-    command: "rp-cli -e 'windows'",
+    command: "rp-cli -e 'windows' --raw-json",
     requiresBinding: false,
-    parseFormat: 'text',
+    parseFormat: 'json',
     failureMode: 'RepoPrompt unavailable, socket permission denied, parse drift',
     privacyClass: 'metadata'
   },
@@ -103,7 +106,8 @@ const BASE_CAPABILITIES: CapabilityDraft[] = [
     requiresBinding: true,
     parseFormat: 'none',
     failureMode: 'explicit user request required; may contain transcripts/log bodies',
-    privacyClass: 'transcript'
+    privacyClass: 'transcript',
+    defaultStatus: 'unavailable'
   },
   {
     field: 'copySummary',
@@ -136,18 +140,25 @@ export class RpCliProvider implements RepoPromptProvider {
       return this.emptySnapshot(generatedAt, capabilityStatus, diagnostics);
     }
 
-    const windowsResult = await this.runReadOnly(['-e', 'windows']);
+    let windowsCommand = "rp-cli -e 'windows' --raw-json";
+    let windowsParseFormat: CapabilityMatrixEntry['parseFormat'] = 'json';
+    let windowsResult = await this.runReadOnly(['-e', 'windows', '--raw-json']);
+    if (windowsResult.exitCode !== 0) {
+      windowsCommand = "rp-cli -e 'windows'";
+      windowsParseFormat = 'text';
+      windowsResult = await this.runReadOnly(['-e', 'windows']);
+    }
     capabilityStatus.set('windows', windowsResult.exitCode === 0 ? 'available' : 'error');
     const windows = windowsResult.exitCode === 0 ? parseWindowsOutput(windowsResult.stdout) : [];
     if (windowsResult.exitCode !== 0) {
-      diagnostics.push(this.diagnostic('windows_unavailable', describeFailure(`${windowsResult.stderr}\n${windowsResult.stdout}`), 'warning', generatedAt, "rp-cli -e 'windows'"));
+      diagnostics.push(this.diagnostic('windows_unavailable', describeFailure(`${windowsResult.stderr}\n${windowsResult.stdout}`), 'warning', generatedAt, windowsCommand));
     }
 
     const sessionCollection = await this.collectSessionsWithBindingTargets(windows, generatedAt);
     capabilityStatus.set('agentSessionStates', sessionCollection.status);
     if (sessionCollection.diagnostic) diagnostics.push(sessionCollection.diagnostic);
 
-    capabilityStatus.set('agentLogs', 'unknown');
+    capabilityStatus.set('agentLogs', 'unavailable');
     capabilityStatus.set('copySummary', 'available');
 
     return {
@@ -155,7 +166,9 @@ export class RpCliProvider implements RepoPromptProvider {
       provider: this.name,
       windows,
       sessions: sessionCollection.sessions,
-      capabilities: buildCapabilities(capabilityStatus),
+      capabilities: buildCapabilities(capabilityStatus, {
+        windows: { command: windowsCommand, parseFormat: windowsParseFormat }
+      }),
       diagnostics,
       summarySource: 'observed'
     };
@@ -222,7 +235,7 @@ export class RpCliProvider implements RepoPromptProvider {
   ): ControlPlaneSnapshot {
     capabilityStatus.set('windows', 'unavailable');
     capabilityStatus.set('agentSessionStates', 'unavailable');
-    capabilityStatus.set('agentLogs', 'unknown');
+    capabilityStatus.set('agentLogs', 'unavailable');
     capabilityStatus.set('copySummary', 'available');
     return {
       generatedAt,
@@ -247,6 +260,9 @@ export class RpCliProvider implements RepoPromptProvider {
 }
 
 export function parseWindowsOutput(output: string): RepoPromptWindow[] {
+  const rawJsonWindows = parseRawJsonWindows(output);
+  if (rawJsonWindows) return rawJsonWindows;
+
   const windows: RepoPromptWindow[] = [];
   let current: RepoPromptWindow | undefined;
 
@@ -273,9 +289,11 @@ export function parseWindowsOutput(output: string): RepoPromptWindow[] {
 
     const activeMatch = line.match(/^\s*• active: (.*?) — context_id: `(.*?)`/);
     if (activeMatch) {
+      const contextId = activeMatch[2]?.trim();
+      current.activeContextId = contextId;
       current.tabs.push({
         name: activeMatch[1]?.trim() ?? 'Untitled',
-        contextId: activeMatch[2],
+        contextId,
         active: true,
         observation: 'observed'
       });
@@ -283,6 +301,75 @@ export function parseWindowsOutput(output: string): RepoPromptWindow[] {
   }
 
   return windows;
+}
+
+function parseRawJsonWindows(output: string): RepoPromptWindow[] | undefined {
+  const trimmed = output.trim();
+  if (!trimmed || (!trimmed.startsWith('{') && !trimmed.startsWith('['))) return undefined;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    return undefined;
+  }
+
+  const records = extractWindowRecords(parsed);
+  if (!records) return undefined;
+
+  return records.map((record, index) => {
+    const id = readNumber(record, ['window_id', 'windowId', 'id']) ?? index + 1;
+    const workspaceRecord = asRecord(record.workspace);
+    const workspace =
+      readString(record, ['workspace_name', 'workspaceName', 'name']) ??
+      readString(workspaceRecord, ['name', 'workspace_name', 'workspaceName']) ??
+      (typeof record.workspace === 'string' && record.workspace.trim() ? record.workspace.trim() : undefined) ??
+      'Unknown';
+    const workspaceId =
+      readString(record, ['workspace_id', 'workspaceId']) ?? readString(workspaceRecord, ['id', 'workspace_id', 'workspaceId']);
+    const activeContextId = readString(record, ['active_context_id', 'activeContextId']);
+    const tabs = readTabs(record, activeContextId);
+    const repoPaths = unique([
+      ...readStringArray(record, ['repo_paths', 'repoPaths', 'repos']),
+      ...readStringArrayFromRecords(Array.isArray(record.tabs) ? record.tabs.filter(isRecord) : [], ['repo_paths', 'repoPaths'])
+    ]);
+    const repoPath = readString(record, ['repo_path', 'repoPath', 'repo']) ?? repoPaths[0];
+    return {
+      id,
+      workspace,
+      workspaceId,
+      repoPath,
+      repoPaths: repoPaths.length > 0 ? repoPaths : undefined,
+      activeContextId,
+      tabs,
+      observation: 'observed'
+    };
+  });
+}
+
+function extractWindowRecords(value: unknown): Record<string, unknown>[] | undefined {
+  if (Array.isArray(value)) return value.filter(isRecord);
+  if (!isRecord(value)) return undefined;
+  for (const key of ['windows', 'items', 'results', 'data']) {
+    const child = value[key];
+    if (Array.isArray(child)) return child.filter(isRecord);
+  }
+  return undefined;
+}
+
+function readTabs(record: Record<string, unknown>, activeContextId: string | undefined): RepoPromptWindow['tabs'] {
+  const rawTabs = Array.isArray(record.tabs) ? record.tabs.filter(isRecord) : [];
+  return rawTabs.map((tab, index) => {
+    const contextId = readString(tab, ['context_id', 'contextId', 'id']);
+    const name = readString(tab, ['name', 'title', 'tab_name', 'tabName']) ?? `Tab ${index + 1}`;
+    const isActive = readBoolean(tab, ['is_active', 'isActive', 'active']) ?? Boolean(contextId && contextId === activeContextId);
+    return {
+      name,
+      contextId,
+      active: isActive,
+      observation: 'observed' as const
+    };
+  });
 }
 
 export function parseAgentSessions(output: string): AgentSession[] {
@@ -322,11 +409,14 @@ function parseAgentSessionsPayload(output: string): ParsedSessionResult {
     sessions: records.map((record, index) => ({
       id: readString(record, ['session_id', 'sessionId', 'id']) ?? `session-${index + 1}`,
       title: readString(record, ['title', 'name', 'session_name', 'sessionName']) ?? `Session ${index + 1}`,
-      workspace: readString(record, ['workspace', 'workspaceName', 'repo', 'repoPath']),
+      workspace: readString(record, ['workspace', 'workspaceName', 'workspace_name', 'repo', 'repoPath']),
       state: normalizeSessionState(readString(record, ['state', 'status']) ?? 'unknown'),
       model: readString(record, ['model', 'model_id', 'modelId']),
       progress: readNumber(record, ['progress']),
       updatedAt: readString(record, ['updated_at', 'updatedAt', 'lastActivityAt']),
+      parentSessionId: readParentSessionId(record),
+      workflowId: readWorkflowId(record),
+      metadata: readSessionMetadata(record),
       observation: 'observed'
     }))
   };
@@ -421,7 +511,7 @@ function payloadForTarget(target: BindingTarget): Record<string, unknown> {
   const base = { op: 'list_sessions', limit: LIST_SESSIONS_LIMIT };
   if (target.kind === 'workspace_roots') return { ...base, working_dirs: target.repoPaths ?? [] };
   if (target.kind === 'context') return { ...base, context_id: target.contextId };
-  return { ...base, window_id: target.windowId };
+  return { ...base, _windowID: target.windowId };
 }
 
 function listSessionsArgs(payload: Record<string, unknown>): string[] {
@@ -499,7 +589,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function readString(record: Record<string, unknown>, keys: string[]): string | undefined {
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return isRecord(value) ? value : undefined;
+}
+
+function readString(record: Record<string, unknown> | undefined, keys: string[]): string | undefined {
+  if (!record) return undefined;
   for (const key of keys) {
     const value = record[key];
     if (typeof value === 'string' && value.trim()) return value.trim();
@@ -515,6 +610,62 @@ function readNumber(record: Record<string, unknown>, keys: string[]): number | u
   return undefined;
 }
 
+function readBoolean(record: Record<string, unknown>, keys: string[]): boolean | undefined {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'boolean') return value;
+  }
+  return undefined;
+}
+
+function readStringArray(record: Record<string, unknown>, keys: string[]): string[] {
+  for (const key of keys) {
+    const value = record[key];
+    if (Array.isArray(value)) {
+      return value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0).map((entry) => entry.trim());
+    }
+  }
+  return [];
+}
+
+function readStringArrayFromRecords(records: Record<string, unknown>[], keys: string[]): string[] {
+  return records.flatMap((record) => readStringArray(record, keys));
+}
+
+function readParentSessionId(record: Record<string, unknown>): string | undefined {
+  return readString(record, ['parentSessionId', 'parent_session_id', 'parentId', 'parent_id', 'parent']);
+}
+
+function readWorkflowId(record: Record<string, unknown>): string | undefined {
+  return readString(record, ['workflowId', 'workflow_id', 'workflow', 'runId', 'run_id']);
+}
+
+function readSessionMetadata(record: Record<string, unknown>): AgentSession['metadata'] | undefined {
+  const metadata = asRecord(record.metadata);
+  const role =
+    readString(record, ['role', 'agentRole', 'agent_role']) ??
+    readString(metadata, ['role', 'agentRole', 'agent_role']);
+  if (!role) return metadata && hasScalarMetadata(metadata) ? copyScalarMetadata(metadata) : undefined;
+  return { ...copyScalarMetadata(metadata), role };
+}
+
+function hasScalarMetadata(metadata: Record<string, unknown>): boolean {
+  return Object.values(metadata).some(isScalarMetadataValue);
+}
+
+function copyScalarMetadata(metadata: Record<string, unknown> | undefined): AgentSession['metadata'] {
+  const scalars: NonNullable<AgentSession['metadata']> = {};
+  if (!metadata) return scalars;
+  for (const [key, value] of Object.entries(metadata)) {
+    if (isScalarMetadataValue(value)) scalars[key] = value;
+  }
+  return scalars;
+}
+
+function isScalarMetadataValue(value: unknown): value is string | number | boolean | null | undefined {
+  return value === null || value === undefined || ['string', 'number', 'boolean'].includes(typeof value);
+}
+
 function normalizeSessionState(value: string): SessionState {
   const normalized = value.toLowerCase().replaceAll('-', '_');
   if (normalized === 'waiting' || normalized === 'waiting_for_input' || normalized === 'needs_input') return 'waiting_for_input';
@@ -526,11 +677,17 @@ function normalizeSessionState(value: string): SessionState {
   return 'unknown';
 }
 
-function buildCapabilities(statuses: Map<string, CapabilityMatrixEntry['status']>): CapabilityMatrixEntry[] {
-  return BASE_CAPABILITIES.map((entry) => {
-    const status = statuses.get(entry.field) ?? 'unknown';
+type CapabilityOverrides = Partial<Record<string, Partial<Pick<CapabilityMatrixEntry, 'command' | 'parseFormat'>>>>;
+
+function buildCapabilities(
+  statuses: Map<string, CapabilityMatrixEntry['status']>,
+  overrides: CapabilityOverrides = {}
+): CapabilityMatrixEntry[] {
+  return BASE_CAPABILITIES.map(({ defaultStatus, ...entry }) => {
+    const status = statuses.get(entry.field) ?? defaultStatus ?? 'unknown';
     return {
       ...entry,
+      ...overrides[entry.field],
       status,
       observation: status === 'available' ? 'observed' : status === 'unknown' ? 'inferred' : 'unavailable'
     };
@@ -540,6 +697,7 @@ function buildCapabilities(statuses: Map<string, CapabilityMatrixEntry['status']
 export function assertReadOnlyRpCliArgs(args: string[]): void {
   if (args.length === 1 && args[0] === '--help') return;
   if (args.length === 2 && args[0] === '-e' && args[1] === 'windows') return;
+  if (args.length === 3 && args[0] === '-e' && args[1] === 'windows' && args[2] === '--raw-json') return;
   if (args.length === 4 && args[0] === '-c' && args[1] === 'agent_manage' && args[2] === '-j') {
     assertReadOnlyAgentManagePayload(args[3] ?? '');
     return;

@@ -9,11 +9,12 @@ import { capabilityMatrix } from './components/capabilityMatrix.js';
 import { composerBar, type ComposerStatusKind } from './components/composerBar.js';
 import { contextRail } from './components/contextRail.js';
 import { diagnosticsPanel } from './components/diagnosticsPanel.js';
-import { diffPanel } from './components/diffPanel.js';
 import { sidebar } from './components/sidebar.js';
+import { workflowDetailsPanel } from './components/workflowDetailsPanel.js';
 import { workflowToolbar, type WorkflowTabKey } from './components/workflowToolbar.js';
 import { workspaceColumn, type WorkspaceFilter } from './components/workspaceColumn.js';
 import { clear, el } from './components/dom.js';
+import { selectDefaultSelectionId } from './selection.js';
 
 interface RendererState {
   snapshot?: ControlPlaneSnapshot;
@@ -44,10 +45,7 @@ function applySnapshot(snapshot: ControlPlaneSnapshot): void {
   state.snapshot = snapshot;
   state.dashboard = createControlPlaneDashboard(snapshot);
   if (!state.selectedId || !selectionExists(state.dashboard, state.selectedId)) {
-    state.selectedId =
-      state.dashboard.implementationPlan.items[0]?.id ??
-      state.dashboard.activityPanel.selectedItemId ??
-      state.dashboard.focusItems[0]?.id;
+    state.selectedId = selectDefaultSelectionId(state.dashboard);
   }
   state.status = 'idle';
   state.message = `Snapshot updated ${new Date(snapshot.generatedAt).toLocaleTimeString()} via ${state.dashboard.providerLabel}.`;
@@ -164,7 +162,7 @@ function render(): void {
 
   // Main content
   root.append(
-    el('section', { class: 'cockpit-main' }, [
+    el('section', { class: 'cockpit-main', attrs: { id: 'cockpit' } }, [
       workflowToolbar(
         {
           dashboard,
@@ -184,7 +182,7 @@ function render(): void {
       ),
       el('div', { class: 'cockpit-content' }, [
         activityCard(dashboard, selection),
-        diffPanel({
+        workflowDetailsPanel({
           dashboard,
           activeTab: state.activeTab,
           selectedTitle: selection?.title,
@@ -243,7 +241,7 @@ function diagnosticSection(dashboard: ControlPlaneDashboard): HTMLElement {
 
 function selectionExists(dashboard: ControlPlaneDashboard, id: string): boolean {
   if (dashboard.focusItems.some((item) => item.id === id)) return true;
-  if (dashboard.implementationPlan.items.some((item) => item.id === id)) return true;
+  if (dashboard.implementationPlan.items.some((item) => item.kind === 'session' && item.id === id)) return true;
   for (const group of dashboard.sessionGroups) {
     if (group.sessions.some((session) => session.id === id)) return true;
   }
@@ -265,7 +263,9 @@ function currentSelection(
   if (!id) return undefined;
   const session = findSessionInGroups(dashboard, id);
   const treeNode = findInTree(dashboard.sessionTree.roots, id);
-  const planItem = dashboard.implementationPlan.items.find((item) => item.id === id);
+  const planItem = dashboard.implementationPlan.items.find(
+    (item) => item.kind === 'session' && item.id === id
+  );
   const focusItem = dashboard.focusItems.find((item) => item.id === id);
 
   if (session) {

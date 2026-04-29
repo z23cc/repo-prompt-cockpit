@@ -248,15 +248,6 @@ a {
   color: var(--accent);
 }
 
-.sidebar-nav-item.is-disabled {
-  cursor: default;
-  color: var(--text-subtle);
-}
-
-.sidebar-nav-item.is-disabled:hover {
-  background: transparent;
-}
-
 .sidebar-nav-icon {
   font-size: 0.92rem;
   color: var(--text-muted);
@@ -269,15 +260,22 @@ a {
   letter-spacing: -0.005em;
 }
 
-.sidebar-nav-tag {
-  font-size: 0.62rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-subtle);
-  background: rgba(0, 0, 0, 0.04);
-  border-radius: 999px;
-  padding: 0.05rem 0.4rem;
+.sidebar-parked-note {
+  margin: 0.1rem 0.2rem 0;
+  padding: 0.55rem 0.6rem;
+  border: 1px dashed var(--border);
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.52);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.sidebar-parked-note strong {
+  display: block;
+  color: var(--text);
+  font-size: 0.74rem;
+  margin-bottom: 0.1rem;
 }
 
 .sidebar-status {
@@ -726,7 +724,7 @@ a {
   background: var(--accent);
 }
 
-.workflow-tab.is-disabled-tab .workflow-tab-mark {
+.workflow-tab.is-unavailable-tab .workflow-tab-mark {
   background: var(--unavailable);
 }
 
@@ -877,9 +875,9 @@ a {
   background: var(--failed);
 }
 
-/* ─── Diff / code panel ─────────────────────────────────── */
+/* ─── Workflow parked details panel ─────────────────────── */
 
-.diff-panel {
+.workflow-detail-panel {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 0.7rem;
@@ -889,7 +887,7 @@ a {
   overflow: hidden;
 }
 
-.diff-head {
+.workflow-detail-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -899,14 +897,14 @@ a {
   background: rgba(0, 0, 0, 0.015);
 }
 
-.diff-head-path {
+.workflow-detail-title {
   font-family: 'SF Mono', 'JetBrains Mono', ui-monospace, Menlo, monospace;
   font-size: 0.78rem;
   color: var(--text);
   font-weight: 500;
 }
 
-.diff-head-stats {
+.workflow-detail-state {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
@@ -915,71 +913,7 @@ a {
   font-variant-numeric: tabular-nums;
 }
 
-.diff-stat-add {
-  color: var(--running);
-  font-weight: 600;
-}
-
-.diff-stat-del {
-  color: var(--failed);
-  font-weight: 600;
-}
-
-.diff-body {
-  font-family: 'SF Mono', 'JetBrains Mono', ui-monospace, Menlo, monospace;
-  font-size: 0.78rem;
-  line-height: 1.5;
-  padding: 0;
-  background: #fbfbfd;
-  max-height: 22rem;
-  overflow-y: auto;
-}
-
-.diff-line {
-  display: grid;
-  grid-template-columns: 2.4rem minmax(0, 1fr);
-  align-items: stretch;
-}
-
-.diff-line-gutter {
-  text-align: right;
-  padding: 0 0.55rem;
-  color: var(--text-subtle);
-  font-variant-numeric: tabular-nums;
-  font-size: 0.7rem;
-  border-right: 1px solid var(--border-subtle);
-  background: rgba(0, 0, 0, 0.015);
-  user-select: none;
-}
-
-.diff-line-content {
-  padding: 0 0.7rem;
-  white-space: pre-wrap;
-  color: var(--text);
-}
-
-.diff-line.diff-add {
-  background: rgba(46, 170, 92, 0.07);
-}
-
-.diff-line.diff-add .diff-line-content {
-  color: #146c2e;
-}
-
-.diff-line.diff-del {
-  background: rgba(229, 72, 77, 0.06);
-}
-
-.diff-line.diff-del .diff-line-content {
-  color: #a61b1b;
-}
-
-.diff-line.diff-meta .diff-line-content {
-  color: var(--text-muted);
-  font-style: italic;
-}
-
-.diff-empty {
+.workflow-detail-empty {
   padding: 1.2rem;
   text-align: center;
   color: var(--text-muted);
@@ -987,7 +921,7 @@ a {
   font-size: 0.85rem;
 }
 
-/* ─── Status preview (replaces a code diff for plan/activity tabs) ─ */
+/* ─── Status preview for plan/activity tabs ─────────────── */
 
 .preview-panel {
   background: var(--bg-card);
@@ -1173,6 +1107,19 @@ a {
 .rail-row.is-static:hover {
   border-color: var(--border-subtle);
   background: var(--bg-card);
+}
+
+.rail-context-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.rail-context-tab {
+  margin-left: 0.65rem;
+  padding-left: 0.55rem;
+  border-left: 1.5px dashed rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.66);
 }
 
 .rail-tree-group {
@@ -1496,7 +1443,7 @@ a {
   display: inline-block;
 }
 
-.pill-branch {
+.pill-workspace {
   font-family: 'SF Mono', 'JetBrains Mono', ui-monospace, Menlo, monospace;
   font-size: 0.7rem;
   color: var(--text-muted);
@@ -1505,8 +1452,8 @@ a {
   padding: 0.05rem 0.4rem;
 }
 
-.pill-branch::before {
-  content: '⎇';
+.pill-workspace::before {
+  content: '▤';
   margin-right: 0.2rem;
   color: var(--text-subtle);
   font-size: 0.7rem;

@@ -14,8 +14,8 @@ import {
 
 const fixturePath = new URL('./fixtures/rp-windows.txt', import.meta.url);
 const controlPlaneContextId = '0D1D0428-949A-485F-A3B0-6924EE9EC5CF';
-const supacodeContextId = '28680F75-90F5-4E72-ADA9-6710165CB25C';
-const controlPlaneRepoPath = '/Users/zakelfassi/Documents/Code/RepoPrompt-control-plane';
+const secondaryWorkspaceContextId = '28680F75-90F5-4E72-ADA9-6710165CB25C';
+const controlPlaneRepoPath = '/workspace/RepoPrompt-control-plane';
 
 describe('parseWindowsOutput', () => {
   it('parses RepoPrompt workspaces and active contexts without depending on a fixed window id', async () => {
@@ -37,6 +37,52 @@ describe('parseWindowsOutput', () => {
       observation: 'observed'
     });
   });
+
+  it('parses observed raw JSON windows with nested workspace and tab-level repo paths', () => {
+    const windows = parseWindowsOutput(
+      JSON.stringify({
+        windows: [
+          {
+            window_id: 12,
+            workspace: { id: 'workspace-control-plane', name: 'RepoPrompt-control-plane' },
+            active_context_id: 'ctx-active',
+            tabs: [
+              {
+                name: 'Implementation',
+                context_id: 'ctx-active',
+                is_active: true,
+                repo_paths: ['/repo/control-plane'],
+                workspace_name: 'RepoPrompt-control-plane',
+                workspace_id: 'workspace-control-plane'
+              },
+              {
+                name: 'Review',
+                context_id: 'ctx-review',
+                is_active: false,
+                repo_paths: ['/repo/control-plane']
+              }
+            ]
+          }
+        ]
+      })
+    );
+
+    expect(windows).toEqual([
+      expect.objectContaining({
+        id: 12,
+        workspace: 'RepoPrompt-control-plane',
+        workspaceId: 'workspace-control-plane',
+        activeContextId: 'ctx-active',
+        repoPath: '/repo/control-plane',
+        repoPaths: ['/repo/control-plane'],
+        observation: 'observed',
+        tabs: [
+          expect.objectContaining({ name: 'Implementation', contextId: 'ctx-active', active: true }),
+          expect.objectContaining({ name: 'Review', contextId: 'ctx-review', active: false })
+        ]
+      })
+    ]);
+  });
 });
 
 describe('parseAgentSessions', () => {
@@ -55,6 +101,49 @@ describe('parseAgentSessions', () => {
         observation: 'observed'
       })
     ]);
+  });
+
+  it('preserves observed live hierarchy metadata from list_sessions JSON records', () => {
+    const sessions = parseAgentSessions(
+      JSON.stringify({
+        sessions: [
+          {
+            session_id: 'child-session',
+            title: 'Child executor',
+            status: 'running',
+            parent_session_id: 'parent-session',
+            workflow_id: 'workflow-1',
+            run_id: 'run-ignored-because-workflow-present',
+            agent_role: 'executor',
+            metadata: { role: 'stale-role', attempt: 2, nested: { ignored: true } }
+          },
+          {
+            id: 'reviewer-session',
+            name: 'Reviewer',
+            state: 'waiting',
+            parentId: 'parent-session',
+            runId: 'run-2',
+            metadata: { agentRole: 'reviewer' }
+          }
+        ]
+      })
+    );
+
+    expect(sessions).toEqual([
+      expect.objectContaining({
+        id: 'child-session',
+        parentSessionId: 'parent-session',
+        workflowId: 'workflow-1',
+        metadata: expect.objectContaining({ role: 'executor', attempt: 2 })
+      }),
+      expect.objectContaining({
+        id: 'reviewer-session',
+        parentSessionId: 'parent-session',
+        workflowId: 'run-2',
+        metadata: expect.objectContaining({ role: 'reviewer' })
+      })
+    ]);
+    expect(sessions[0]?.metadata).not.toHaveProperty('nested');
   });
 
   it('accepts alternate wrapper keys returned by rp-cli variants', () => {
@@ -91,10 +180,38 @@ describe('binding target selection', () => {
     expect(attempts[1]).toMatchObject({ id: expect.stringMatching(/^window-hidden:/) });
     expect(JSON.parse(attempts[1]?.args[3] ?? '{}')).toMatchObject({ _windowID: expect.any(Number), op: 'list_sessions', limit: 20 });
     expect(attempts.some((attempt) => attempt.args.join(' ').includes(controlPlaneContextId))).toBe(true);
+    const windowAttempt = attempts.find((attempt) => attempt.id === 'window:12');
+    expect(JSON.parse(windowAttempt?.args[3] ?? '{}')).toMatchObject({
+      _windowID: 12,
+      op: 'list_sessions',
+      limit: 20
+    });
+    expect(JSON.parse(windowAttempt?.args[3] ?? '{}')).not.toHaveProperty('window_id');
   });
 });
 
 describe('RpCliProvider', () => {
+  it('reports the text windows fallback honestly when raw JSON windows are unavailable', async () => {
+    const windowsOutput = await readFile(fixturePath, 'utf8');
+    const runner: CommandRunner = async (_executable, args) => {
+      if (args.includes('--help')) return { stdout: 'RepoPrompt MCP CLI', stderr: '', exitCode: 0 };
+      if (args.includes('--raw-json')) return { stdout: '', stderr: 'raw json unsupported', exitCode: 1 };
+      if (args.includes('windows')) return { stdout: windowsOutput, stderr: '', exitCode: 0 };
+      return { stdout: JSON.stringify({ sessions: [] }), stderr: '', exitCode: 0 };
+    };
+
+    const provider = new RpCliProvider(loadConfig({}), runner, () => new Date('2026-04-28T00:00:00Z'));
+    const snapshot = await provider.collectSnapshot();
+
+    expect(snapshot.windows.length).toBeGreaterThan(0);
+    expect(snapshot.capabilities.find((entry) => entry.field === 'windows')).toMatchObject({
+      status: 'available',
+      observation: 'observed',
+      command: "rp-cli -e 'windows'",
+      parseFormat: 'text'
+    });
+  });
+
   it('recovers from an unbound binding error by trying targeted read-only list_sessions payloads', async () => {
     const windowsOutput = await readFile(fixturePath, 'utf8');
     const calls: string[][] = [];
@@ -137,6 +254,14 @@ describe('RpCliProvider', () => {
       observation: 'observed'
     });
     expect(snapshot.diagnostics).not.toContainEqual(expect.objectContaining({ code: 'session_status_requires_binding' }));
+    expect(snapshot.capabilities.find((entry) => entry.field === 'agentLogs')).toMatchObject({
+      status: 'unavailable',
+      observation: 'unavailable',
+      command: 'not called during MVP probe',
+      parseFormat: 'none',
+      privacyClass: 'transcript'
+    });
+    expect(calls.some((args) => args.join(' ').includes('get_log'))).toBe(false);
   });
 
   it('merges sessions from multiple successful targeted selectors', async () => {
@@ -148,8 +273,12 @@ describe('RpCliProvider', () => {
       if (payload.context_id === controlPlaneContextId) {
         return { stdout: JSON.stringify({ sessions: [{ id: 'control', title: 'Control plane', status: 'running' }] }), stderr: '', exitCode: 0 };
       }
-      if (payload.context_id === supacodeContextId) {
-        return { stdout: JSON.stringify({ sessions: [{ id: 'supacode', title: 'Supacode', status: 'waiting' }] }), stderr: '', exitCode: 0 };
+      if (payload.context_id === secondaryWorkspaceContextId) {
+        return {
+          stdout: JSON.stringify({ sessions: [{ id: 'secondary', title: 'Secondary workspace', status: 'waiting' }] }),
+          stderr: '',
+          exitCode: 0
+        };
       }
       return { stdout: '', stderr: 'Multiple RepoPrompt windows detected. Bind your connection to route tool calls.', exitCode: 1 };
     };
@@ -160,7 +289,7 @@ describe('RpCliProvider', () => {
     expect(snapshot.sessions).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: 'control', workspace: 'RepoPrompt-control-plane' }),
-        expect.objectContaining({ id: 'supacode', workspace: 'supacode' })
+        expect.objectContaining({ id: 'secondary', workspace: 'sample-workspace-a' })
       ])
     );
     expect(snapshot.diagnostics).toHaveLength(0);
@@ -256,6 +385,7 @@ describe('RpCliProvider', () => {
   it('rejects mutating or malformed rp-cli payloads with the positive read-only validator', () => {
     expect(() => assertReadOnlyRpCliArgs(['--help'])).not.toThrow();
     expect(() => assertReadOnlyRpCliArgs(['-e', 'windows'])).not.toThrow();
+    expect(() => assertReadOnlyRpCliArgs(['-e', 'windows', '--raw-json'])).not.toThrow();
     expect(() => assertReadOnlyRpCliArgs(['-c', 'agent_manage', '-j', JSON.stringify({ op: 'list_sessions', limit: 20, context_id: controlPlaneContextId })])).not.toThrow();
     expect(() => assertReadOnlyRpCliArgs(['-c', 'agent_manage', '-j', JSON.stringify({ op: 'list_sessions', limit: 20, _windowID: 12 })])).not.toThrow();
     expect(() => assertReadOnlyRpCliArgs(['-c', 'agent_manage', '-j', JSON.stringify({ op: 'bind', context_id: controlPlaneContextId })])).toThrow();
@@ -269,6 +399,7 @@ describe('RpCliProvider', () => {
   it('documents only read-only rp-cli commands in the MVP allowlist', () => {
     const commandText = READ_ONLY_RP_CLI_COMMANDS.join(' ');
     expect(commandText).toContain('list_sessions');
+    expect(commandText).toContain('--raw-json');
     expect(commandText).toContain('working_dirs');
     expect(commandText).toContain('context_id');
     expect(commandText).toContain('window_id');

@@ -38,7 +38,10 @@ export interface RepoPromptTab {
 export interface RepoPromptWindow {
   id: number;
   workspace: string;
+  workspaceId?: string;
   repoPath?: string;
+  repoPaths?: string[];
+  activeContextId?: string;
   tabs: RepoPromptTab[];
   observation: ObservationKind;
 }

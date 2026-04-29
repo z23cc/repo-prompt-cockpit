@@ -23,13 +23,5 @@ export function diagnosticsPanel(diagnostics: ProviderDiagnostic[]): HTMLElement
         )
       );
 
-  return el('section', { class: 'panel diagnostics-panel', attrs: { id: 'diagnostics' } }, [
-    el('header', { class: 'panel-head' }, [
-      el('h2', { class: 'panel-title' }, ['Diagnostics']),
-      el('span', { class: 'panel-sub muted' }, [
-        diagnostics.length === 1 ? '1 entry' : `${diagnostics.length} entries`
-      ])
-    ]),
-    body
-  ]);
+  return body;
 }

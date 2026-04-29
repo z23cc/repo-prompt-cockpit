@@ -3,14 +3,14 @@ import type { WorkflowTabKey } from './workflowToolbar.js';
 import { workflowTabsFromActivityTabs } from './workflowToolbar.js';
 import { el } from './dom.js';
 
-export interface DiffPanelOptions {
+export interface WorkflowDetailsPanelOptions {
   dashboard: ControlPlaneDashboard;
   activeTab: WorkflowTabKey;
   selectedTitle?: string;
   selectedWorkspace?: string;
 }
 
-export function diffPanel(options: DiffPanelOptions): HTMLElement {
+export function workflowDetailsPanel(options: WorkflowDetailsPanelOptions): HTMLElement {
   const tab = options.activeTab;
 
   if (tab === 'plan' || tab === 'activity') {
@@ -20,20 +20,20 @@ export function diffPanel(options: DiffPanelOptions): HTMLElement {
   const tabs = workflowTabsFromActivityTabs(options.dashboard.activityPanel.tabs);
   const descriptor = tabs.find((entry) => entry.key === tab);
   const detail =
-    descriptor?.detail ?? 'No data available for this tab in the read-only provider snapshot.';
+    descriptor?.detail ?? 'No data available for this view in the read-only provider snapshot.';
 
-  return el('section', { class: 'diff-panel', attrs: { 'aria-label': `${descriptor?.label ?? tab} panel` } }, [
-    el('header', { class: 'diff-head' }, [
-      el('div', { class: 'diff-head-path' }, [`${descriptor?.label ?? tab.toUpperCase()} · unavailable`]),
-      el('div', { class: 'diff-head-stats' }, [
+  return el('section', { class: 'workflow-detail-panel', attrs: { 'aria-label': `${descriptor?.label ?? tab} panel` } }, [
+    el('header', { class: 'workflow-detail-head' }, [
+      el('div', { class: 'workflow-detail-title' }, [`${descriptor?.label ?? tab.toUpperCase()} · unavailable`]),
+      el('div', { class: 'workflow-detail-state' }, [
         el('span', { class: 'badge badge-unavailable' }, ['unavailable'])
       ])
     ]),
-    el('div', { class: 'diff-empty' }, [detail])
+    el('div', { class: 'workflow-detail-empty' }, [detail])
   ]);
 }
 
-function planPreviewShell(options: DiffPanelOptions): HTMLElement {
+function planPreviewShell(options: WorkflowDetailsPanelOptions): HTMLElement {
   const counts = options.dashboard.statusCounts;
   const total =
     counts.running +
@@ -59,8 +59,8 @@ function planPreviewShell(options: DiffPanelOptions): HTMLElement {
     el('header', { class: 'preview-head' }, [
       el('div', { class: 'preview-head-title' }, [
         el('span', undefined, ['Status preview']),
-        el('span', { class: 'badge badge-unavailable', title: 'Provider does not report file diffs in read-only snapshots.' }, [
-          'not a diff'
+        el('span', { class: 'badge badge-unavailable', title: 'Provider reports deterministic snapshot status only.' }, [
+          'snapshot only'
         ])
       ]),
       el('div', { class: 'preview-head-meta' }, [
@@ -71,8 +71,8 @@ function planPreviewShell(options: DiffPanelOptions): HTMLElement {
     ]),
     el('div', { class: 'preview-meta-line' }, [
       options.selectedTitle
-        ? `Selected workflow: ${options.selectedTitle}`
-        : 'No workflow selected — counts reflect the full snapshot.'
+        ? `Selected session: ${options.selectedTitle}`
+        : 'No session selected — counts reflect the full snapshot.'
     ]),
     el(
       'dl',
@@ -83,7 +83,7 @@ function planPreviewShell(options: DiffPanelOptions): HTMLElement {
       ])
     ),
     el('p', { class: 'preview-note muted small' }, [
-      'Deterministic preview. The provider does not report file-level diffs; this view shows snapshot counts only.'
+      'Deterministic preview. This view shows provider-reported session counts only.'
     ])
   ]);
 }

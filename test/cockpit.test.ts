@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { createControlPlaneDashboard } from '../src/domain/dashboard.js';
 import { DemoFixtureProvider } from '../src/repoprompt/providers/index.js';
+import { contextRail } from '../src/renderer/components/contextRail.js';
+import { workflowDetailsPanel } from '../src/renderer/components/workflowDetailsPanel.js';
+import { sidebar } from '../src/renderer/components/sidebar.js';
 import { workflowTabsFromActivityTabs } from '../src/renderer/components/workflowToolbar.js';
+import { selectDefaultSelectionId } from '../src/renderer/selection.js';
 import {
   ageLabelForTesting,
   avatarInitialsForTesting,
@@ -9,6 +13,70 @@ import {
   filterItems
 } from '../src/renderer/components/workspaceColumn.js';
 import type { ControlPlaneSnapshot } from '../src/shared/types.js';
+
+class TestNode {
+  childNodes: TestNode[] = [];
+  parentNode?: TestNode;
+
+  appendChild(child: TestNode): TestNode {
+    this.childNodes.push(child);
+    child.parentNode = this;
+    return child;
+  }
+
+  get firstChild(): TestNode | undefined {
+    return this.childNodes[0];
+  }
+
+  removeChild(child: TestNode): TestNode {
+    this.childNodes = this.childNodes.filter((node) => node !== child);
+    child.parentNode = undefined;
+    return child;
+  }
+
+  get textContent(): string {
+    return this.childNodes.map((child) => child.textContent).join('');
+  }
+}
+
+class TestText extends TestNode {
+  constructor(private readonly value: string) {
+    super();
+  }
+
+  override get textContent(): string {
+    return this.value;
+  }
+}
+
+class TestElement extends TestNode {
+  className = '';
+  dataset: Record<string, string> = {};
+  title = '';
+  private readonly attrs = new Map<string, string>();
+
+  constructor(readonly tag: string) {
+    super();
+  }
+
+  setAttribute(name: string, value: string): void {
+    this.attrs.set(name, value);
+  }
+
+  addEventListener(): void {
+    // Tests only inspect rendered text.
+  }
+}
+
+function installTestDom(): void {
+  Object.assign(globalThis, {
+    Node: TestNode,
+    document: {
+      createElement: (tag: string) => new TestElement(tag),
+      createTextNode: (value: string) => new TestText(value)
+    }
+  });
+}
 
 const baseSnapshot: ControlPlaneSnapshot = {
   generatedAt: '2026-04-28T00:00:00Z',
@@ -65,6 +133,58 @@ describe('cockpit workspace column helpers', () => {
   });
 });
 
+describe('sidebar rendering', () => {
+  it('renders only wired navigation plus one parked note for unsupported surfaces', () => {
+    installTestDom();
+    const nav = sidebar();
+    const text = nav.textContent ?? '';
+
+    expect(text).toContain('Cockpit');
+    expect(text).toContain('Workspaces');
+    expect(text).toContain('Parked surfaces');
+    expect(text).toContain('not shown as navigation');
+    expect(text).not.toContain('soon');
+    expect(text).not.toContain('Worktrees');
+    expect(text).not.toContain('MCP Servers');
+    expect(text).not.toContain('Templates');
+  });
+});
+
+describe('context rail rendering', () => {
+  it('renders observed tab/context metadata without claiming file-level context', async () => {
+    installTestDom();
+    const snapshot = await new DemoFixtureProvider(() => new Date('2026-04-28T00:00:00Z')).collectSnapshot();
+    const dashboard = createControlPlaneDashboard(snapshot);
+    const rail = contextRail({ dashboard, selectedId: undefined }, { onSelect: () => undefined });
+    const text = rail.textContent ?? '';
+
+    expect(text).toContain('Workspace/context metadata');
+    expect(text).toContain('T1');
+    expect(text).toContain('context fixture-');
+    expect(text).toContain('Publish plan context');
+    expect(text).toContain('Overall snapshot progress');
+    expect(text).not.toContain('Files in context');
+    expect(text).not.toContain('Workflow progress');
+  });
+});
+
+describe('workflow detail panels', () => {
+  it('parks unsupported workflow views with honest unavailable copy instead of fake diff/log content', () => {
+    installTestDom();
+    const dashboard = createControlPlaneDashboard(baseSnapshot);
+    const logs = workflowDetailsPanel({ dashboard, activeTab: 'logs' });
+    const artifacts = workflowDetailsPanel({ dashboard, activeTab: 'artifacts' });
+    const text = `${logs.textContent ?? ''} ${artifacts.textContent ?? ''}`;
+
+    expect(text).toContain('Logs · unavailable');
+    expect(text).toContain('Log/transcript capability is not called by default');
+    expect(text).toContain('Artifacts · unavailable');
+    expect(text).toContain('Artifacts are not reported by the read-only provider snapshot');
+    expect(text).not.toContain('diff');
+    expect(text).not.toContain('token');
+  });
+});
+
 describe('workflow tab descriptors', () => {
   it('keeps Plan/Activity available and labels Artifacts/Logs/Results unavailable until provider supports them', () => {
     const dashboard = createControlPlaneDashboard(baseSnapshot);
@@ -80,8 +200,31 @@ describe('workflow tab descriptors', () => {
   it('uses the provider-supplied detail strings for unavailable tabs (no fabricated copy)', () => {
     const dashboard = createControlPlaneDashboard(baseSnapshot);
     const tabs = workflowTabsFromActivityTabs(dashboard.activityPanel.tabs);
-    expect(tabs.find((tab) => tab.key === 'logs')?.detail).toContain('not loaded');
-    expect(tabs.find((tab) => tab.key === 'artifacts')?.detail).toContain('Unavailable');
+    expect(dashboard.activityPanel.tabs.map((tab) => tab.key)).not.toContain('diff');
+    expect(tabs.find((tab) => tab.key === 'logs')?.detail).toContain('not called');
+    expect(tabs.find((tab) => tab.key === 'artifacts')?.detail).toContain('not reported');
+  });
+});
+
+describe('renderer selection defaults', () => {
+  it('prefers real session/focus rows and never selects placeholder workflows', async () => {
+    const fixtureSnapshot = await new DemoFixtureProvider(() => new Date('2026-04-28T00:00:00Z')).collectSnapshot();
+    const fixtureDashboard = createControlPlaneDashboard(fixtureSnapshot);
+    expect(selectDefaultSelectionId(fixtureDashboard)).toBe(fixtureDashboard.activityPanel.selectedItemId);
+    expect(
+      fixtureDashboard.implementationPlan.items.find((item) => item.id === selectDefaultSelectionId(fixtureDashboard))?.kind
+    ).toBe('session');
+
+    const windowsOnlyDashboard = createControlPlaneDashboard({
+      ...baseSnapshot,
+      windows: [{ id: 12, workspace: 'RepoPrompt-control-plane', observation: 'observed', tabs: [] }]
+    });
+    expect(windowsOnlyDashboard.implementationPlan.items[0]?.kind).toBe('placeholder');
+    expect(selectDefaultSelectionId(windowsOnlyDashboard)).not.toBe('unavailable-session-state');
+
+    const emptyDashboard = createControlPlaneDashboard(baseSnapshot);
+    expect(emptyDashboard.implementationPlan.items[0]?.kind).toBe('placeholder');
+    expect(selectDefaultSelectionId(emptyDashboard)).toBeUndefined();
   });
 });
 

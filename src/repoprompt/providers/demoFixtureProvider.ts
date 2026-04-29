@@ -15,9 +15,15 @@ export class DemoFixtureProvider implements RepoPromptProvider {
         {
           id: 101,
           workspace: 'RepoPrompt-control-plane',
-          repoPath: '/Users/zakelfassi/Documents/Code/RepoPrompt-control-plane',
+          workspaceId: 'fixture-workspace-control-plane',
+          repoPath: '/workspace/RepoPrompt-control-plane',
+          repoPaths: ['/workspace/RepoPrompt-control-plane'],
+          activeContextId: 'fixture-context-control-plane',
           observation: 'fixture',
-          tabs: [{ name: 'T1', contextId: 'fixture-context-control-plane', active: true, observation: 'fixture' }]
+          tabs: [
+            { name: 'T1', contextId: 'fixture-context-control-plane', active: true, observation: 'fixture' },
+            { name: 'Publish plan context', contextId: 'fixture-context-publish-plan', active: false, observation: 'fixture' }
+          ]
         }
       ],
       sessions: [
@@ -113,6 +119,17 @@ export class DemoFixtureProvider implements RepoPromptProvider {
           privacyClass: 'metadata',
           observation: 'fixture',
           status: 'available'
+        },
+        {
+          field: 'agentLogs',
+          source: 'agent_manage get_log',
+          command: 'not called during MVP probe',
+          requiresBinding: true,
+          parseFormat: 'none',
+          failureMode: 'explicit user request required; may contain transcripts/log bodies',
+          privacyClass: 'transcript',
+          observation: 'unavailable',
+          status: 'unavailable'
         },
         {
           field: 'copySummary',

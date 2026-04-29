@@ -32,42 +32,48 @@ export interface WorkflowToolbarOptions {
   isFixture: boolean;
 }
 
+const WORKFLOW_TAB_ORDER: WorkflowTabKey[] = ['plan', 'activity', 'artifacts', 'logs', 'results'];
+
+const WORKFLOW_TAB_DEFAULTS: Record<WorkflowTabKey, Omit<WorkflowTabDescriptor, 'key'>> = {
+  plan: {
+    label: 'Plan',
+    available: true,
+    detail: 'Selected workflow/session metadata when provider reports a real session; otherwise an honest empty state.'
+  },
+  activity: {
+    label: 'Activity',
+    available: true,
+    detail: 'Session metadata and deterministic status only.'
+  },
+  artifacts: {
+    label: 'Artifacts',
+    available: false,
+    detail: 'Artifacts are not reported by the read-only provider snapshot.'
+  },
+  logs: {
+    label: 'Logs',
+    available: false,
+    detail: 'Log/transcript capability is not called by default; bodies are unavailable.'
+  },
+  results: {
+    label: 'Results',
+    available: false,
+    detail: 'Results are not reported by the read-only provider snapshot.'
+  }
+};
+
 export function workflowTabsFromActivityTabs(tabs: ActivityPanelTab[]): WorkflowTabDescriptor[] {
   const byKey = new Map(tabs.map((tab) => [tab.key, tab]));
-  const plan = byKey.get('activity');
-  return [
-    {
-      key: 'plan',
-      label: 'Plan',
-      available: true,
-      detail: 'Selected workflow / session metadata.'
-    },
-    {
-      key: 'activity',
-      label: 'Activity',
-      available: plan?.available ?? true,
-      detail: plan?.detail ?? 'Session metadata and deterministic status only.'
-    },
-    {
-      key: 'artifacts',
-      label: 'Artifacts',
-      available: byKey.get('diff')?.available ?? false,
-      detail: byKey.get('diff')?.detail ?? 'Unavailable in read-only provider snapshot.'
-    },
-    {
-      key: 'logs',
-      label: 'Logs',
-      available: byKey.get('logs')?.available ?? false,
-      detail: byKey.get('logs')?.detail ?? 'Log/transcript bodies are not loaded by default.'
-    },
-    {
-      key: 'results',
-      label: 'Results',
-      available: byKey.get('results')?.available ?? false,
-      detail:
-        byKey.get('results')?.detail ?? 'Unavailable unless future provider metadata supports it.'
-    }
-  ];
+  return WORKFLOW_TAB_ORDER.map((key) => {
+    const tab = byKey.get(key);
+    const fallback = WORKFLOW_TAB_DEFAULTS[key];
+    return {
+      key,
+      label: tab?.label ?? fallback.label,
+      available: tab?.available ?? fallback.available,
+      detail: tab?.detail ?? fallback.detail
+    };
+  });
 }
 
 export function workflowToolbar(
@@ -84,7 +90,7 @@ export function workflowToolbar(
         el('div', { class: 'workflow-title' }, [
           el('h1', { title: selected?.title ?? 'No selection' }, [selected?.title ?? 'No workflow selected']),
           selected?.workspace
-            ? el('span', { class: 'pill pill-branch' }, [selected.workspace])
+            ? el('span', { class: 'pill pill-workspace' }, [selected.workspace])
             : null,
           selected
             ? el('span', { class: `pill pill-state pill-${selected.state}` }, [
@@ -119,7 +125,7 @@ function workflowTab(
       class: classNames(
         'workflow-tab',
         isActive && 'is-active',
-        !tab.available && 'is-disabled-tab'
+        !tab.available && 'is-unavailable-tab'
       ),
       attrs: {
         role: 'tab',

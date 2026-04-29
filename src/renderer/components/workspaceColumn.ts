@@ -65,7 +65,7 @@ export function workspaceColumn(
           filtered.map((item) => sessionCard(item, options.selectedId, now, handlers))
         );
 
-  return el('section', { class: 'workspace-column', attrs: { 'aria-label': 'Workspaces and sessions' } }, [
+  return el('section', { class: 'workspace-column', attrs: { id: 'workspaces', 'aria-label': 'Workspaces and sessions' } }, [
     head,
     body
   ]);
@@ -102,7 +102,7 @@ function sessionCard(
   handlers: WorkspaceColumnHandlers
 ): HTMLElement {
   const isSelected = item.id === selectedId;
-  const branch = branchLabel(item);
+  const workspace = workspaceLabel(item);
   const age = ageLabel(item.updatedAt, now);
   const progress = clampProgress(item.progress);
   const stateClass = `pill-${item.state}`;
@@ -123,10 +123,10 @@ function sessionCard(
           el('span', { class: 'pill-state-dot', attrs: { 'aria-hidden': 'true' } }, []),
           stateLabel(item.state)
         ]),
-        branch ? el('span', { class: 'pill pill-branch' }, [branch]) : null
+        workspace ? el('span', { class: 'pill pill-workspace' }, [workspace]) : null
       ]),
       el('p', { class: 'session-card-summary' }, [item.detail]),
-      el('div', { class: 'session-card-foot' }, [agentBlock(item), metricsBlock(progress)]),
+      el('div', { class: 'session-card-foot' }, [agentBlock(item), progressBlock(progress)]),
       el(
         'div',
         {
@@ -162,18 +162,12 @@ function agentBlock(item: ImplementationPlanItem): HTMLElement {
   ]);
 }
 
-function metricsBlock(progress: number | undefined): HTMLElement {
-  return el('div', { class: 'session-card-metrics', attrs: { 'aria-label': 'Session metrics' } }, [
-    metric('◷', progress === undefined ? '—' : `${Math.round(progress * 100)}%`, 'progress'),
-    metric('▤', '—', 'files unavailable in read-only snapshot'),
-    metric('⊙', '—', 'tokens unavailable in read-only snapshot')
-  ]);
-}
-
-function metric(icon: string, value: string, title: string): HTMLElement {
-  return el('span', { class: 'session-card-metric', title }, [
-    el('span', { attrs: { 'aria-hidden': 'true' } }, [icon]),
-    el('span', undefined, [value])
+function progressBlock(progress: number | undefined): HTMLElement {
+  return el('div', { class: 'session-card-metrics', attrs: { 'aria-label': 'Reported progress' } }, [
+    el('span', { class: 'session-card-metric', title: 'Progress reported by provider' }, [
+      el('span', { attrs: { 'aria-hidden': 'true' } }, ['◷']),
+      el('span', undefined, [progress === undefined ? 'progress unavailable' : `${Math.round(progress * 100)}%`])
+    ])
   ]);
 }
 
@@ -192,7 +186,7 @@ function avatarInitials(model: string): string {
   return (tokens[0]![0]! + tokens[1]![0]!).toUpperCase();
 }
 
-function branchLabel(item: ImplementationPlanItem): string | undefined {
+function workspaceLabel(item: ImplementationPlanItem): string | undefined {
   if (item.workspace) return item.workspace;
   return undefined;
 }

@@ -21,6 +21,17 @@ export interface StatusCounts {
   unknown: number;
 }
 
+export interface WorkspaceContextTabView {
+  id: string;
+  workspace: string;
+  windowId: number;
+  tabName: string;
+  contextId?: string;
+  active: boolean;
+  repoPath?: string;
+  observation: ObservationKind;
+}
+
 export interface WorkspaceView {
   id: string;
   workspace: string;
@@ -28,6 +39,7 @@ export interface WorkspaceView {
   windowIds: number[];
   tabCount: number;
   activeTabCount: number;
+  contextTabs: WorkspaceContextTabView[];
   observation: ObservationKind;
 }
 
@@ -80,7 +92,7 @@ export interface ImplementationPlanView {
 }
 
 export interface ActivityPanelTab {
-  key: 'activity' | 'diff' | 'logs' | 'results';
+  key: 'plan' | 'activity' | 'artifacts' | 'logs' | 'results';
   label: string;
   available: boolean;
   detail: string;
@@ -138,12 +150,28 @@ export function createControlPlaneDashboard(snapshot: ControlPlaneSnapshot): Con
     sessionTree: createSessionTree(snapshot.sessions),
     implementationPlan: { items: implementationItems },
     activityPanel: {
-      selectedItemId: focusItems[0]?.id ?? implementationItems[0]?.id,
+      selectedItemId: selectActivityItemId(focusItems, implementationItems),
       tabs: [
+        {
+          key: 'plan',
+          label: 'Plan',
+          available: true,
+          detail: 'Selected workflow/session metadata when provider reports a real session; otherwise an honest empty state.'
+        },
         { key: 'activity', label: 'Activity', available: true, detail: 'Session metadata and deterministic status only.' },
-        { key: 'diff', label: 'Diff', available: false, detail: 'Unavailable in read-only provider snapshot.' },
-        { key: 'logs', label: 'Logs', available: false, detail: 'Log/transcript bodies are not loaded by default.' },
-        { key: 'results', label: 'Results', available: false, detail: 'Unavailable unless future provider metadata supports it.' }
+        {
+          key: 'artifacts',
+          label: 'Artifacts',
+          available: false,
+          detail: 'Artifacts are not reported by the read-only provider snapshot.'
+        },
+        {
+          key: 'logs',
+          label: 'Logs',
+          available: false,
+          detail: 'Log/transcript capability is not called by default; bodies are unavailable.'
+        },
+        { key: 'results', label: 'Results', available: false, detail: 'Results are not reported by the read-only provider snapshot.' }
       ]
     },
     capabilityRows: snapshot.capabilities.map((capability) => ({
@@ -196,6 +224,7 @@ function createWorkspaceViews(snapshot: ControlPlaneSnapshot): WorkspaceView[] {
       current.windowIds.push(window.id);
       current.tabCount += window.tabs.length;
       current.activeTabCount += window.tabs.filter((tab) => tab.active).length;
+      current.contextTabs.push(...createContextTabsForWindow(window));
       continue;
     }
 
@@ -206,11 +235,36 @@ function createWorkspaceViews(snapshot: ControlPlaneSnapshot): WorkspaceView[] {
       windowIds: [window.id],
       tabCount: window.tabs.length,
       activeTabCount: window.tabs.filter((tab) => tab.active).length,
+      contextTabs: createContextTabsForWindow(window),
       observation: window.observation
     });
   }
 
-  return [...byWorkspace.values()].sort((a, b) => a.workspace.localeCompare(b.workspace));
+  return [...byWorkspace.values()]
+    .map((workspace) => ({
+      ...workspace,
+      contextTabs: workspace.contextTabs.sort(compareContextTabs)
+    }))
+    .sort((a, b) => a.workspace.localeCompare(b.workspace));
+}
+
+function createContextTabsForWindow(window: ControlPlaneSnapshot['windows'][number]): WorkspaceContextTabView[] {
+  return window.tabs.map((tab, index) => ({
+    id: `${window.id}:${tab.contextId ?? tab.name}:${index}`,
+    workspace: window.workspace,
+    windowId: window.id,
+    tabName: tab.name,
+    contextId: tab.contextId,
+    active: tab.active,
+    repoPath: window.repoPath,
+    observation: tab.observation
+  }));
+}
+
+function compareContextTabs(a: WorkspaceContextTabView, b: WorkspaceContextTabView): number {
+  if (a.active !== b.active) return a.active ? -1 : 1;
+  if (a.windowId !== b.windowId) return a.windowId - b.windowId;
+  return a.tabName.localeCompare(b.tabName);
 }
 
 function createSessionGroups(snapshot: ControlPlaneSnapshot): SessionGroupView[] {
@@ -360,6 +414,15 @@ function firstString(...values: unknown[]): string | undefined {
     }
   }
   return undefined;
+}
+
+function selectActivityItemId(focusItems: AttentionItem[], implementationItems: ImplementationPlanItem[]): string | undefined {
+  const sessionIds = new Set(implementationItems.filter((item) => item.kind === 'session').map((item) => item.id));
+  return (
+    focusItems.find((item) => sessionIds.has(item.id))?.id ??
+    implementationItems.find((item) => item.kind === 'session')?.id ??
+    focusItems[0]?.id
+  );
 }
 
 function createImplementationPlanItems(snapshot: ControlPlaneSnapshot): ImplementationPlanItem[] {

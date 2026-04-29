@@ -2,6 +2,7 @@
   "name": "repoprompt-control-plane",
   "version": "0.1.0",
   "private": true,
+  "license": "Apache-2.0",
   "description": "Menu-bar-first RepoPrompt control plane MVP.",
   "main": "electron-main.cjs",
   "type": "module",
@@ -16,7 +17,8 @@
     "smoke:missing-rp-cli": "RP_CLI_PATH=/definitely/missing/rp-cli tsx scripts/smoke-provider.ts missing-rp-cli",
     "smoke:socket-denied": "tsx scripts/smoke-provider.ts socket-denied",
     "smoke:binding-target": "tsx scripts/smoke-provider.ts binding-target",
-    "smoke:tray": "pnpm build && RP_CONTROL_PLANE_DEMO=1 RP_CONTROL_PLANE_SMOKE=1 electron ."
+    "smoke:tray": "pnpm build && RP_CONTROL_PLANE_DEMO=1 RP_CONTROL_PLANE_SMOKE=1 electron .",
+    "verify": "pnpm lint && pnpm build && pnpm test && pnpm smoke:dashboard && pnpm smoke:menu && pnpm smoke:missing-rp-cli && pnpm smoke:socket-denied && pnpm smoke:binding-target && tsx scripts/check-release-hygiene.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

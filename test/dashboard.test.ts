@@ -23,6 +23,30 @@ describe('createControlPlaneDashboard', () => {
     expect(dashboard.providerLabel).toContain('fixture');
     expect(dashboard.privacyBanner.detail).toContain('not loaded or uploaded by default');
     expect(dashboard.activityPanel.tabs.find((tab) => tab.key === 'logs')).toMatchObject({ available: false });
+    expect(dashboard.capabilityRows.find((row) => row.field === 'agentLogs')).toMatchObject({
+      status: 'unavailable',
+      observation: 'unavailable'
+    });
+
+    expect(dashboard.workspaces[0]).toMatchObject({
+      workspace: 'RepoPrompt-control-plane',
+      tabCount: 2,
+      activeTabCount: 1
+    });
+    expect(dashboard.workspaces[0]?.contextTabs).toEqual([
+      expect.objectContaining({
+        tabName: 'T1',
+        contextId: 'fixture-context-control-plane',
+        active: true,
+        observation: 'fixture'
+      }),
+      expect.objectContaining({
+        tabName: 'Publish plan context',
+        contextId: 'fixture-context-publish-plan',
+        active: false,
+        observation: 'fixture'
+      })
+    ]);
 
     expect(dashboard.sessionTree.mode).toBe('observed');
     const parent = dashboard.sessionTree.roots.find((node) => node.id === 'fixture-orchestrator-parent');
@@ -34,7 +58,7 @@ describe('createControlPlaneDashboard', () => {
     expect(parent?.children[0]?.relationshipLabel).toBe('relationship observed');
   });
 
-  it('creates unavailable implementation item when only workspace context is available', () => {
+  it('creates unavailable implementation item when only workspace context is available without selecting it as a workflow', () => {
     const dashboard = createControlPlaneDashboard({
       ...baseSnapshot,
       windows: [{ id: 12, workspace: 'RepoPrompt-control-plane', observation: 'observed', tabs: [] }]
@@ -45,6 +69,29 @@ describe('createControlPlaneDashboard', () => {
       state: 'unavailable',
       observation: 'unavailable',
       kind: 'placeholder'
+    });
+    expect(dashboard.activityPanel.selectedItemId).toBe('workspace-context-only');
+    expect(dashboard.activityPanel.selectedItemId).not.toBe(dashboard.implementationPlan.items[0]?.id);
+  });
+
+  it('exposes honest workflow surface tabs without a fake diff contract', () => {
+    const dashboard = createControlPlaneDashboard(baseSnapshot);
+
+    expect(dashboard.activityPanel.tabs.map((tab) => tab.key)).toEqual([
+      'plan',
+      'activity',
+      'artifacts',
+      'logs',
+      'results'
+    ]);
+    expect(dashboard.activityPanel.tabs.map((tab) => tab.key)).not.toContain('diff');
+    expect(dashboard.activityPanel.tabs.find((tab) => tab.key === 'artifacts')).toMatchObject({
+      available: false,
+      detail: expect.stringContaining('not reported')
+    });
+    expect(dashboard.activityPanel.tabs.find((tab) => tab.key === 'logs')).toMatchObject({
+      available: false,
+      detail: expect.stringContaining('not called')
     });
   });
 
@@ -63,6 +110,7 @@ describe('createControlPlaneDashboard', () => {
 
     expect(dashboard.statusCounts).toMatchObject({ sessions: 3, running: 1, waiting: 1, completed: 1 });
     expect(dashboard.focusItems[0]?.id).toBe(focus[0]?.id);
+    expect(dashboard.activityPanel.selectedItemId).toBe('wait');
   });
 
   it('counts unique workspaces in status counts when multiple windows share a workspace', () => {
@@ -76,6 +124,32 @@ describe('createControlPlaneDashboard', () => {
     });
 
     expect(dashboard.statusCounts.workspaces).toBe(2);
+  });
+
+  it('preserves observed window tab/context identities in workspace views', () => {
+    const dashboard = createControlPlaneDashboard({
+      ...baseSnapshot,
+      windows: [
+        {
+          id: 12,
+          workspace: 'RepoPrompt-control-plane',
+          repoPath: '/repo/control-plane',
+          activeContextId: 'ctx-active',
+          observation: 'observed',
+          tabs: [
+            { name: 'Implementation', contextId: 'ctx-active', active: true, observation: 'observed' },
+            { name: 'Review', contextId: 'ctx-review', active: false, observation: 'observed' }
+          ]
+        }
+      ]
+    });
+
+    expect(dashboard.workspaces).toHaveLength(1);
+    expect(dashboard.workspaces[0]).toMatchObject({ tabCount: 2, activeTabCount: 1 });
+    expect(dashboard.workspaces[0]?.contextTabs).toEqual([
+      expect.objectContaining({ tabName: 'Implementation', contextId: 'ctx-active', windowId: 12, active: true }),
+      expect.objectContaining({ tabName: 'Review', contextId: 'ctx-review', windowId: 12, active: false })
+    ]);
   });
 
   it('marks inferred relationships when only workflow metadata can group sessions', () => {

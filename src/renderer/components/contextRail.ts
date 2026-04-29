@@ -4,6 +4,7 @@ import type {
   SessionTreeNodeView,
   SessionTreeView,
   StatusCounts,
+  WorkspaceContextTabView,
   WorkspaceView
 } from '../../domain/dashboard.js';
 import type { AttentionItem } from '../../shared/types.js';
@@ -33,38 +34,64 @@ export function contextRail(
   ]);
 }
 
-/* ── Files in context ───────────────────────────────────────────── */
+/* ── Workspace/context metadata ─────────────────────────────────── */
 
 function filesSection(workspaces: WorkspaceView[]): HTMLElement {
+  const contextCount = workspaces.reduce((count, workspace) => count + workspace.contextTabs.length, 0);
   const body =
     workspaces.length === 0
-      ? el('p', { class: 'rail-empty' }, ['No workspace metadata in this snapshot.'])
+      ? el('p', { class: 'rail-empty' }, ['No workspace or tab/context metadata in this snapshot.'])
       : el(
           'div',
           { class: 'rail-list' },
-          workspaces.map((workspace) =>
-            el('div', { class: 'rail-row is-static' }, [
-              el('div', { class: 'rail-row-title' }, [
-                el('span', { class: 'rail-row-icon', attrs: { 'aria-hidden': 'true' } }, ['▤']),
-                el('span', { class: 'rail-row-title-text', title: workspace.workspace }, [workspace.workspace]),
-                el('span', { class: `badge badge-${workspace.observation}` }, [
-                  observationLabel(workspace.observation)
-                ])
-              ]),
-              el('p', { class: 'rail-row-meta' }, [
-                workspace.repoPath ?? `${pluralize(workspace.windowIds.length, 'window')} · ${pluralize(workspace.tabCount, 'tab')}`
-              ])
-            ])
-          )
+          workspaces.map((workspace) => workspaceContextGroup(workspace))
         );
 
   return el('section', { class: 'rail-section' }, [
     el('div', { class: 'rail-section-head' }, [
-      el('span', { class: 'rail-section-title' }, ['Files in context']),
-      el('span', { class: 'rail-section-sub' }, [pluralize(workspaces.length, 'workspace')])
+      el('span', { class: 'rail-section-title' }, ['Workspace/context metadata']),
+      el('span', { class: 'rail-section-sub' }, [
+        `${pluralize(workspaces.length, 'workspace')} · ${pluralize(contextCount, 'context tab')}`
+      ])
     ]),
     body
   ]);
+}
+
+function workspaceContextGroup(workspace: WorkspaceView): HTMLElement {
+  return el('div', { class: 'rail-context-group' }, [
+    el('div', { class: 'rail-row is-static' }, [
+      el('div', { class: 'rail-row-title' }, [
+        el('span', { class: 'rail-row-icon', attrs: { 'aria-hidden': 'true' } }, ['▤']),
+        el('span', { class: 'rail-row-title-text', title: workspace.workspace }, [workspace.workspace]),
+        el('span', { class: `badge badge-${workspace.observation}` }, [
+          observationLabel(workspace.observation)
+        ])
+      ]),
+      el('p', { class: 'rail-row-meta' }, [
+        workspace.repoPath ?? `${pluralize(workspace.windowIds.length, 'window')} · ${pluralize(workspace.tabCount, 'tab')}`
+      ])
+    ]),
+    ...workspace.contextTabs.map((tab) => contextTabRow(tab))
+  ]);
+}
+
+function contextTabRow(tab: WorkspaceContextTabView): HTMLElement {
+  const contextLabel = tab.contextId ? `context ${shortContextId(tab.contextId)}` : 'context id unavailable';
+  return el('div', { class: 'rail-row rail-context-tab is-static' }, [
+    el('div', { class: 'rail-row-title' }, [
+      el('span', { class: 'rail-row-icon', attrs: { 'aria-hidden': 'true' } }, [tab.active ? '●' : '○']),
+      el('span', { class: 'rail-row-title-text', title: tab.tabName }, [tab.tabName]),
+      tab.active ? el('span', { class: 'badge badge-observed' }, ['active']) : null
+    ]),
+    el('p', { class: 'rail-row-meta', title: tab.contextId ?? undefined }, [
+      `window ${tab.windowId} · ${contextLabel} · ${observationLabel(tab.observation)}`
+    ])
+  ]);
+}
+
+function shortContextId(contextId: string): string {
+  return contextId.length <= 8 ? contextId : contextId.slice(0, 8);
 }
 
 /* ── Prompts (focus next) ───────────────────────────────────────── */
@@ -118,7 +145,7 @@ function focusRow(
   return node;
 }
 
-/* ── Workflow progress ──────────────────────────────────────────── */
+/* ── Overall snapshot progress ──────────────────────────────────── */
 
 function progressSection(counts: StatusCounts): HTMLElement {
   const total =
@@ -133,7 +160,7 @@ function progressSection(counts: StatusCounts): HTMLElement {
 
   return el('section', { class: 'rail-section' }, [
     el('div', { class: 'rail-section-head' }, [
-      el('span', { class: 'rail-section-title' }, ['Workflow progress'])
+      el('span', { class: 'rail-section-title' }, ['Overall snapshot progress'])
     ]),
     el('div', { class: 'rail-progress-card' }, [
       el('div', { class: 'rail-progress-row' }, [

@@ -15,6 +15,16 @@ if (!dashboard.privacyBanner.detail.includes('not loaded or uploaded by default'
 if (dashboard.activityPanel.tabs.some((tab) => tab.key === 'logs' && tab.available)) {
   throw new Error('Logs tab should be unavailable by default.');
 }
+const fixtureWorkspace = dashboard.workspaces.find((workspace) => workspace.workspace === 'RepoPrompt-control-plane');
+if (!fixtureWorkspace) {
+  throw new Error('Expected fixture workspace metadata in dashboard.');
+}
+if (!fixtureWorkspace.contextTabs.some((tab) => tab.contextId === 'fixture-context-control-plane' && tab.active)) {
+  throw new Error('Expected active fixture context tab metadata in workspace view.');
+}
+if (!fixtureWorkspace.contextTabs.some((tab) => tab.contextId === 'fixture-context-publish-plan' && !tab.active)) {
+  throw new Error('Expected inactive fixture context tab metadata in workspace view.');
+}
 if (!dashboard.focusItems.some((item) => item.observation === 'fixture')) {
   throw new Error('Expected fixture observations in focus items.');
 }

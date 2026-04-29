@@ -4,20 +4,20 @@
 ### Windows
 - **Count**: 5
 
-- Window `5` • workspace: supacode • 32 tabs
-  repo: `/Users/zakelfassi/Documents/Code/supacode`
-  • active: ZCode visible identity — context_id: `28680F75-90F5-4E72-ADA9-6710165CB25C`
-- Window `7` • workspace: TAC Monorepo • 36 tabs
-  repo: `/Users/zakelfassi/.supacode/repos/tac-monorepo/zc-4.3.1`
-  • active: War Room Redesign — Design Spec — context_id: `5158E045-3A0A-4B37-877F-C47B11EA874D`
-- Window `9` • workspace: LLMOptim • 29 tabs
-  repo: `/Users/zakelfassi/Documents/Code/LLMOptim`
-  • active: Report contract v2 — context_id: `1F413593-F64D-46F0-8F6A-16AA2ACE6A7D`
-- Window `11` • workspace: zc-fix-unable-to-save-transcript • 2 tabs
-  repo: `/Users/zakelfassi/.supacode/repos/tac-monorepo/zc-fix-unable-to-save-transcript`
-  • active: Transcript save staging — context_id: `1718DE41-5DB1-4B4F-B495-FB38EDB23C3A`
+- Window `5` • workspace: sample-workspace-a • 32 tabs
+  repo: `/workspace/sample-workspace-a`
+  • active: Example planning tab — context_id: `28680F75-90F5-4E72-ADA9-6710165CB25C`
+- Window `7` • workspace: sample-workspace-b • 36 tabs
+  repo: `/workspace/sample-workspace-b`
+  • active: Example design review — context_id: `5158E045-3A0A-4B37-877F-C47B11EA874D`
+- Window `9` • workspace: sample-workspace-c • 29 tabs
+  repo: `/workspace/sample-workspace-c`
+  • active: Example report tab — context_id: `1F413593-F64D-46F0-8F6A-16AA2ACE6A7D`
+- Window `11` • workspace: sample-workspace-d • 2 tabs
+  repo: `/workspace/sample-workspace-d`
+  • active: Example staging tab — context_id: `1718DE41-5DB1-4B4F-B495-FB38EDB23C3A`
 - Window `12` • workspace: RepoPrompt-control-plane • 1 tab
-  repo: `/Users/zakelfassi/Documents/Code/RepoPrompt-control-plane`
+  repo: `/workspace/RepoPrompt-control-plane`
   • active: T1 — context_id: `0D1D0428-949A-485F-A3B0-6924EE9EC5CF`
 
 ### Next Steps

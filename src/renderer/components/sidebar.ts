@@ -5,20 +5,11 @@ export interface SidebarSection {
   id: string;
   label: string;
   icon: string;
-  available: boolean;
-  tag?: string;
 }
 
 const NAV_SECTIONS: SidebarSection[] = [
-  { id: 'cockpit', label: 'Cockpit', icon: '◐', available: true },
-  { id: 'workspaces', label: 'Workspaces', icon: '▤', available: true },
-  { id: 'worktrees', label: 'Worktrees', icon: '⌥', available: false, tag: 'soon' },
-  { id: 'agents', label: 'Agents', icon: '◇', available: false, tag: 'soon' },
-  { id: 'mcp', label: 'MCP Servers', icon: '⌘', available: false, tag: 'soon' },
-  { id: 'workflows', label: 'Workflows', icon: '⌗', available: false, tag: 'soon' },
-  { id: 'templates', label: 'Templates', icon: '◫', available: false, tag: 'soon' },
-  { id: 'integrations', label: 'Integrations', icon: '◈', available: false, tag: 'soon' },
-  { id: 'settings', label: 'Settings', icon: '⚙', available: false, tag: 'soon' }
+  { id: 'cockpit', label: 'Cockpit', icon: '◐' },
+  { id: 'workspaces', label: 'Workspaces', icon: '▤' }
 ];
 
 export interface SidebarOptions {
@@ -42,6 +33,7 @@ export function sidebar(options: SidebarOptions = {}): HTMLElement {
       { class: 'sidebar-nav', attrs: { 'aria-label': 'Workspace navigation' } },
       NAV_SECTIONS.map((section) => navItem(section, activeId))
     ),
+    parkedSurfacesNote(),
     options.counts ? statusBlock(options.counts) : null,
     el('div', { class: 'sidebar-foot' }, [
       'No transcript or log bodies are fetched.'
@@ -50,25 +42,26 @@ export function sidebar(options: SidebarOptions = {}): HTMLElement {
 }
 
 function navItem(section: SidebarSection, activeId: string): HTMLElement {
-  const tag = section.available ? 'a' : 'span';
   return el(
-    tag,
+    'a',
     {
-      class: classNames(
-        'sidebar-nav-item',
-        section.id === activeId && 'is-active',
-        !section.available && 'is-disabled'
-      ),
-      attrs: section.available
-        ? { href: `#${section.id}`, role: 'link' }
-        : { 'aria-disabled': 'true', role: 'presentation', title: 'Preview — not yet wired to a provider' }
+      class: classNames('sidebar-nav-item', section.id === activeId && 'is-active'),
+      attrs: { href: `#${section.id}`, role: 'link' }
     },
     [
       el('span', { class: 'sidebar-nav-icon', attrs: { 'aria-hidden': 'true' } }, [section.icon]),
-      el('span', { class: 'sidebar-nav-label' }, [section.label]),
-      section.tag ? el('span', { class: 'sidebar-nav-tag' }, [section.tag]) : null
+      el('span', { class: 'sidebar-nav-label' }, [section.label])
     ]
   );
+}
+
+function parkedSurfacesNote(): HTMLElement {
+  return el('div', { class: 'sidebar-parked-note', attrs: { role: 'note' } }, [
+    el('strong', undefined, ['Parked surfaces']),
+    el('span', undefined, [
+      ' Unsupported surfaces are not shown as navigation until the provider exposes observable data for them.'
+    ])
+  ]);
 }
 
 interface StatusRow {

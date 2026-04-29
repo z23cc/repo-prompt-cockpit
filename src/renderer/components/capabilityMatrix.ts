@@ -1,6 +1,6 @@
 import type { CapabilityRowView } from '../../domain/dashboard.js';
 import { el } from './dom.js';
-import { observationLabel, pluralize } from './format.js';
+import { observationLabel } from './format.js';
 
 export function capabilityMatrix(rows: CapabilityRowView[]): HTMLElement {
   const body = rows.length === 0
@@ -26,11 +26,5 @@ export function capabilityMatrix(rows: CapabilityRowView[]): HTMLElement {
         )
       ]);
 
-  return el('section', { class: 'panel capability-panel', attrs: { id: 'capabilities' } }, [
-    el('header', { class: 'panel-head' }, [
-      el('h2', { class: 'panel-title' }, ['Capabilities']),
-      el('span', { class: 'panel-sub muted' }, [pluralize(rows.length, 'field')])
-    ]),
-    body
-  ]);
+  return body;
 }
