@@ -1,0 +1,7 @@
+Error:
+Multiple RepoPrompt windows detected. Bind your connection to route tool calls:
+
+**Recommended: Bind by exact workspace root paths (auto-resolves to the matching workspace/window)**
+Call `bind_context` with {"op":"bind","working_dirs":["/absolute/path/to/root1","/absolute/path/to/root2"]} using the full workspace directory set.
+
+Command exited with code 1

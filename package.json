@@ -1,0 +1,31 @@
+{
+  "name": "repoprompt-control-plane",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Menu-bar-first RepoPrompt control plane MVP.",
+  "main": "electron-main.cjs",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "pnpm build && electron .",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "probe:rp": "tsx scripts/probe-rp-cli.ts",
+    "smoke:menu": "tsx scripts/smoke-menu.ts",
+    "smoke:missing-rp-cli": "RP_CLI_PATH=/definitely/missing/rp-cli tsx scripts/smoke-provider.ts missing-rp-cli",
+    "smoke:socket-denied": "tsx scripts/smoke-provider.ts socket-denied",
+    "smoke:binding-target": "tsx scripts/smoke-provider.ts binding-target",
+    "smoke:tray": "pnpm build && RP_CONTROL_PLANE_DEMO=1 RP_CONTROL_PLANE_SMOKE=1 electron ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "electron": "^39.2.6",
+    "eslint": "^9.39.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vitest": "^4.0.8"
+  },
+  "packageManager": "pnpm@8.15.0+sha512.ea45517d5285d123eac02c3793505fa1fd6da90a2fc60d1e8d9e0c1e9292886ecfaff513f062b9d1cc8021bb8615033b1ac5bea3b2ee3fc165a6d7034bbe6b03"
+}
