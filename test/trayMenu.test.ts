@@ -10,15 +10,20 @@ describe('tray menu', () => {
     const refreshNow = vi.fn();
     const copySummary = vi.fn();
     const menu = buildTrayTemplate(snapshot, {
+      openControlPlane: vi.fn(),
       refreshNow,
       copySummary,
       switchToFixtureMode: vi.fn(),
+      switchToLiveMode: vi.fn(),
       quit: vi.fn()
     });
     const labels = menuLabels(menu);
 
     expect(buildTrayTitle(snapshot)).toMatch(/^RP demo \d+s \d+▶ \d+\?$/);
-    expect(labels).toEqual(expect.arrayContaining(['Focus next', 'Sessions', 'Workspaces', 'Capabilities', 'Diagnostics', 'Actions', 'Copy summary']));
+    expect(labels).toEqual(
+      expect.arrayContaining(['Focus next', 'Sessions', 'Workspaces', 'Capabilities', 'Diagnostics', 'Actions', 'Open Control Plane', 'Copy summary'])
+    );
+    expect(labels).toContain('Use live rp-cli mode');
     expect(labels.some((label) => label.includes('[fixture]'))).toBe(true);
     expect(labels.some((label) => label.startsWith('Waiting'))).toBe(true);
     expect(labels.some((label) => label.startsWith('Running'))).toBe(true);
@@ -57,9 +62,11 @@ describe('tray menu', () => {
 
     const labels = menuLabels(
       buildTrayTemplate(snapshot, {
+        openControlPlane: vi.fn(),
         refreshNow: vi.fn(),
         copySummary: vi.fn(),
         switchToFixtureMode: vi.fn(),
+        switchToLiveMode: vi.fn(),
         quit: vi.fn()
       })
     );
@@ -68,6 +75,7 @@ describe('tray menu', () => {
     expect(labels).toContain('[unavailable] No live session rows available');
     expect(labels).toContain('[observed] RepoPrompt-control-plane');
     expect(labels).toContain('[observed] warning: session_status_requires_binding');
+    expect(labels).toContain('Open Control Plane');
     expect(labels).toContain('Use fixture demo mode');
   });
 });

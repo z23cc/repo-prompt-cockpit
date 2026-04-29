@@ -22,37 +22,45 @@ export class DemoFixtureProvider implements RepoPromptProvider {
       ],
       sessions: [
         {
-          id: 'fixture-report-contract',
-          title: 'Report contract v2',
+          id: 'fixture-orchestrator-parent',
+          title: 'Orchestration Run: Control Plane S-tier',
           workspace: 'RepoPrompt-control-plane',
           state: 'running',
           model: 'Codex 5.3',
           progress: 0.75,
           updatedAt: generatedAt,
           observation: 'fixture',
-          summary: 'Implement schema migration, fixtures, and verification receipts.'
+          summary: 'Parent orchestration run coordinating parallel sub-agents.',
+          workflowId: 'wf-control-plane-001',
+          metadata: { role: 'orchestrator' }
         },
         {
-          id: 'fixture-war-room',
-          title: 'War Room Redesign',
+          id: 'fixture-child-dashboard-tree',
+          title: 'Sub-agent: dashboard tree derivation',
           workspace: 'RepoPrompt-control-plane',
           state: 'running',
           model: 'Claude Sonnet 4.6',
           progress: 0.9,
           updatedAt: generatedAt,
           observation: 'fixture',
-          summary: 'Revamp interface hierarchy and review visual deltas.'
+          summary: 'Revamp session hierarchy derivation and review visual deltas.',
+          parentSessionId: 'fixture-orchestrator-parent',
+          workflowId: 'wf-control-plane-001',
+          metadata: { role: 'executor' }
         },
         {
-          id: 'fixture-security-review',
-          title: 'Security Review',
+          id: 'fixture-child-security-review',
+          title: 'Sub-agent: security review',
           workspace: 'RepoPrompt-control-plane',
           state: 'blocked',
           model: 'Opus 4.7',
           progress: 0.6,
           updatedAt: generatedAt,
           observation: 'fixture',
-          summary: 'Blocked while waiting for dependency audit output.'
+          summary: 'Blocked while waiting for dependency audit output.',
+          parentSessionId: 'fixture-orchestrator-parent',
+          workflowId: 'wf-control-plane-001',
+          metadata: { role: 'security-reviewer' }
         },
         {
           id: 'fixture-release-gate',

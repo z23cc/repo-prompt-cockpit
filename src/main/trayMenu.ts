@@ -4,9 +4,11 @@ import { deriveAttentionItems } from '../domain/attention.js';
 import { createDeterministicSummary } from '../domain/summary.js';
 
 export interface TrayMenuActions {
+  openControlPlane(): void;
   refreshNow(): void;
   copySummary(): void;
   switchToFixtureMode(): void;
+  switchToLiveMode(): void;
   quit(): void;
 }
 
@@ -67,9 +69,11 @@ export function buildTrayTemplate(snapshot: ControlPlaneSnapshot, actions: TrayM
     separator(),
     disabledHeader('Actions'),
     { label: truncateLabel(summary), enabled: false },
+    { label: 'Open Control Plane', click: actions.openControlPlane },
     { label: 'Refresh now', click: actions.refreshNow },
     { label: 'Copy summary', click: actions.copySummary },
     { label: 'Use fixture demo mode', click: actions.switchToFixtureMode, visible: snapshot.provider !== 'demo-fixture' },
+    { label: 'Use live rp-cli mode', click: actions.switchToLiveMode, visible: snapshot.provider === 'demo-fixture' },
     separator(),
     { label: 'Quit', click: actions.quit }
   ]);

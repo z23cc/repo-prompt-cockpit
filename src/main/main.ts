@@ -1,16 +1,18 @@
-import { app, clipboard, Menu, nativeImage, Tray } from 'electron';
+import { app, clipboard, ipcMain, Menu, nativeImage, Tray } from 'electron';
 import { loadConfig } from '../shared/config.js';
-import type { ControlPlaneConfig, ControlPlaneSnapshot, RepoPromptProvider } from '../shared/types.js';
+import type { ControlPlaneConfig, ControlPlaneSnapshot, ProviderMode } from '../shared/types.js';
 import { createDeterministicSummary } from '../domain/summary.js';
-import { createProvider } from '../repoprompt/providerFactory.js';
-import { DemoFixtureProvider } from '../repoprompt/providers/index.js';
+import { ControlPlaneController } from './controlPlaneController.js';
+import { createDesktopWindowController, type DesktopWindowController } from './desktopWindow.js';
+import { registerControlPlaneIpcHandlers } from './ipcHandlers.js';
 import { buildTrayTemplate, buildTrayTitle } from './trayMenu.js';
 
 let tray: Tray | undefined;
-let provider: RepoPromptProvider;
 let config: ControlPlaneConfig;
+let controller: ControlPlaneController | undefined;
+let desktopWindow: DesktopWindowController | undefined;
 let latestSnapshot: ControlPlaneSnapshot | undefined;
-let refreshTimer: NodeJS.Timeout | undefined;
+let unregisterIpcHandlers: (() => void) | undefined;
 
 if (process.env.RP_CONTROL_PLANE_SMOKE === '1') {
   setTimeout(() => {
@@ -21,13 +23,25 @@ if (process.env.RP_CONTROL_PLANE_SMOKE === '1') {
 
 async function bootstrap(): Promise<void> {
   config = loadConfig();
-  provider = createProvider(config);
+  controller = new ControlPlaneController(config);
+  desktopWindow = createDesktopWindowController(config);
+  unregisterIpcHandlers = registerControlPlaneIpcHandlers({ ipcMain, clipboard, controller });
+
   tray = new Tray(createTemplateImage());
   tray.setToolTip('RepoPrompt Control Plane');
-  await refresh();
-  refreshTimer = setInterval(() => {
-    void refresh();
-  }, config.pollingIntervalMs);
+  tray.on('click', () => desktopWindow?.toggle());
+
+  controller.onSnapshot((snapshot) => {
+    latestSnapshot = snapshot;
+    updateTray(snapshot);
+    desktopWindow?.sendSnapshot(snapshot);
+  });
+
+  await controller.start();
+
+  if (config.openWindowOnStart && process.env.RP_CONTROL_PLANE_SMOKE !== '1') {
+    desktopWindow.show();
+  }
 
   if (process.env.RP_CONTROL_PLANE_SMOKE === '1') {
     console.log(latestSnapshot ? createDeterministicSummary(latestSnapshot, config) : 'No snapshot generated');
@@ -35,29 +49,35 @@ async function bootstrap(): Promise<void> {
   }
 }
 
-async function refresh(): Promise<void> {
-  latestSnapshot = await provider.collectSnapshot();
-  if (!tray) return;
+function updateTray(snapshot: ControlPlaneSnapshot): void {
+  if (!tray || !controller) return;
   if (process.platform === 'darwin') {
-    tray.setTitle(buildTrayTitle(latestSnapshot), { fontType: 'monospacedDigit' });
+    tray.setTitle(buildTrayTitle(snapshot), { fontType: 'monospacedDigit' });
   }
   tray.setContextMenu(
     Menu.buildFromTemplate(
-      buildTrayTemplate(latestSnapshot, {
+      buildTrayTemplate(snapshot, {
+        openControlPlane: () => desktopWindow?.show(),
         refreshNow: () => {
-          void refresh();
+          void controller?.refreshNow('manual');
         },
         copySummary: () => {
           if (latestSnapshot) clipboard.writeText(createDeterministicSummary(latestSnapshot, config));
         },
         switchToFixtureMode: () => {
-          provider = new DemoFixtureProvider();
-          void refresh();
+          void switchProviderMode('fixture');
+        },
+        switchToLiveMode: () => {
+          void switchProviderMode('live');
         },
         quit: () => app.quit()
       })
     )
   );
+}
+
+async function switchProviderMode(mode: ProviderMode): Promise<void> {
+  await controller?.setProviderMode(mode);
 }
 
 function createTemplateImage() {
@@ -77,9 +97,11 @@ app.whenReady().then(() => {
 });
 
 app.on('before-quit', () => {
-  if (refreshTimer) clearInterval(refreshTimer);
+  desktopWindow?.markAppQuitting();
+  controller?.stop();
+  unregisterIpcHandlers?.();
 });
 
 app.on('window-all-closed', () => {
-  // Tray-only app: keep the process alive until the tray Quit action or smoke timeout exits.
+  // Keep the process alive until the tray Quit action or smoke timeout exits.
 });

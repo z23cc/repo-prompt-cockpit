@@ -1,16 +1,26 @@
 import type { ControlPlaneConfig } from './types.js';
 
 const DEFAULT_SUMMARY_MAX_CHARS = 1200;
+const DEFAULT_DESKTOP_WINDOW_WIDTH = 1280;
+const DEFAULT_DESKTOP_WINDOW_HEIGHT = 860;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ControlPlaneConfig {
   return {
     rpCliPath: env.RP_CLI_PATH?.trim() || 'rp-cli',
-    pollingIntervalMs: Number.parseInt(env.RP_CONTROL_PLANE_POLL_MS || '15000', 10),
-    staleAfterMinutes: Number.parseInt(env.RP_CONTROL_PLANE_STALE_MINUTES || '30', 10),
+    pollingIntervalMs: parsePositiveInteger(env.RP_CONTROL_PLANE_POLL_MS, 15000),
+    staleAfterMinutes: parsePositiveInteger(env.RP_CONTROL_PLANE_STALE_MINUTES, 30),
     enableLlmSummaries: env.RP_CONTROL_PLANE_ENABLE_LLM === '1',
-    summaryMaxChars: Number.parseInt(env.RP_CONTROL_PLANE_SUMMARY_MAX_CHARS || String(DEFAULT_SUMMARY_MAX_CHARS), 10),
-    preferDemoProvider: env.RP_CONTROL_PLANE_DEMO === '1'
+    summaryMaxChars: parsePositiveInteger(env.RP_CONTROL_PLANE_SUMMARY_MAX_CHARS, DEFAULT_SUMMARY_MAX_CHARS),
+    preferDemoProvider: env.RP_CONTROL_PLANE_DEMO === '1',
+    openWindowOnStart: env.RP_CONTROL_PLANE_OPEN_WINDOW !== '0',
+    desktopWindowWidth: parsePositiveInteger(env.RP_CONTROL_PLANE_WINDOW_WIDTH, DEFAULT_DESKTOP_WINDOW_WIDTH),
+    desktopWindowHeight: parsePositiveInteger(env.RP_CONTROL_PLANE_WINDOW_HEIGHT, DEFAULT_DESKTOP_WINDOW_HEIGHT)
   };
 }
 
-export { DEFAULT_SUMMARY_MAX_CHARS };
+function parsePositiveInteger(value: string | undefined, fallback: number): number {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+export { DEFAULT_SUMMARY_MAX_CHARS, DEFAULT_DESKTOP_WINDOW_HEIGHT, DEFAULT_DESKTOP_WINDOW_WIDTH };

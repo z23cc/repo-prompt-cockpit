@@ -6,6 +6,8 @@ export type PrivacyClass = 'metadata' | 'log_excerpt' | 'transcript' | 'local_on
 
 export type SessionState = 'running' | 'waiting_for_input' | 'blocked' | 'completed' | 'failed' | 'idle' | 'unknown';
 
+export type ProviderMode = 'live' | 'fixture';
+
 export interface ProviderDiagnostic {
   code: string;
   message: string;
@@ -41,6 +43,8 @@ export interface RepoPromptWindow {
   observation: ObservationKind;
 }
 
+export type AgentSessionMetadata = Record<string, string | number | boolean | null | undefined>;
+
 export interface AgentSession {
   id: string;
   title: string;
@@ -51,6 +55,9 @@ export interface AgentSession {
   updatedAt?: string;
   observation: ObservationKind;
   summary?: string;
+  parentSessionId?: string;
+  workflowId?: string;
+  metadata?: AgentSessionMetadata;
 }
 
 export interface AttentionItem {
@@ -79,6 +86,9 @@ export interface ControlPlaneConfig {
   enableLlmSummaries: boolean;
   summaryMaxChars: number;
   preferDemoProvider: boolean;
+  openWindowOnStart: boolean;
+  desktopWindowWidth: number;
+  desktopWindowHeight: number;
 }
 
 export interface RepoPromptProvider {

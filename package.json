@@ -12,6 +12,7 @@
     "test": "vitest run",
     "probe:rp": "tsx scripts/probe-rp-cli.ts",
     "smoke:menu": "tsx scripts/smoke-menu.ts",
+    "smoke:dashboard": "tsx scripts/smoke-dashboard.ts",
     "smoke:missing-rp-cli": "RP_CLI_PATH=/definitely/missing/rp-cli tsx scripts/smoke-provider.ts missing-rp-cli",
     "smoke:socket-denied": "tsx scripts/smoke-provider.ts socket-denied",
     "smoke:binding-target": "tsx scripts/smoke-provider.ts binding-target",
