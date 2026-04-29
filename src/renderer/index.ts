@@ -3,7 +3,7 @@ import {
   type ControlPlaneDashboard,
   type SessionTreeNodeView
 } from '../domain/dashboard.js';
-import type { AgentSession, ControlPlaneSnapshot, ProviderMode } from '../shared/types.js';
+import type { AgentSession, ControlPlaneSnapshot, ProviderMode, WindowMode } from '../shared/types.js';
 import { activityCard, type ActivityCardSelection } from './components/activityCard.js';
 import { capabilityMatrix } from './components/capabilityMatrix.js';
 import { composerBar, type ComposerStatusKind } from './components/composerBar.js';
@@ -13,7 +13,7 @@ import { sidebar } from './components/sidebar.js';
 import { workflowDetailsPanel } from './components/workflowDetailsPanel.js';
 import { workflowToolbar, type WorkflowTabKey } from './components/workflowToolbar.js';
 import { workspaceColumn, type WorkspaceFilter } from './components/workspaceColumn.js';
-import { clear, el } from './components/dom.js';
+import { classNames, clear, el } from './components/dom.js';
 import { selectDefaultSelectionId } from './selection.js';
 
 interface RendererState {
@@ -22,6 +22,7 @@ interface RendererState {
   selectedId?: string;
   workspaceFilter: WorkspaceFilter;
   activeTab: WorkflowTabKey;
+  windowMode: WindowMode;
   status: ComposerStatusKind;
   message: string;
 }
@@ -35,6 +36,7 @@ const DEFAULT_PRIVACY = {
 const state: RendererState = {
   workspaceFilter: 'all',
   activeTab: 'plan',
+  windowMode: 'desktop',
   status: 'idle',
   message: 'Read-only monitoring. Transcript/log bodies are not loaded or uploaded by default.'
 };
@@ -76,6 +78,20 @@ async function handleSetMode(mode: ProviderMode): Promise<void> {
   try {
     const snapshot = await window.controlPlane.setProviderMode(mode);
     applySnapshot(snapshot);
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+async function handleToggleWindowMode(): Promise<void> {
+  try {
+    state.windowMode = await window.controlPlane.toggleWindowMode();
+    state.status = 'idle';
+    state.message =
+      state.windowMode === 'minimal'
+        ? 'Minimal cockpit mode enabled. Window stays on top for desktop monitoring.'
+        : 'Desktop cockpit mode restored.';
+    render();
   } catch (error) {
     handleError(error);
   }
@@ -130,7 +146,7 @@ function render(): void {
       sidebar(),
       el('section', { class: 'cockpit-loading-panel' }, [
         el('p', { class: 'eyebrow' }, ['Repo Prompt Cockpit']),
-        el('h1', undefined, ['Loading control-plane snapshot…']),
+        el('h1', undefined, ['Loading cockpit snapshot…']),
         el('p', { class: 'muted' }, [
           'Read-only monitoring. Transcript and log bodies are not loaded or uploaded by default.'
         ])
@@ -139,27 +155,22 @@ function render(): void {
     return;
   }
 
-  root.className = 'cockpit';
+  root.className = classNames('cockpit', state.windowMode === 'minimal' && 'is-minimal-mode');
   const selection = currentSelection(dashboard, state.selectedId);
-
-  // Sidebar
-  root.append(
-    sidebar({ activeId: 'cockpit', counts: dashboard.statusCounts })
-  );
-
-  // Workspace column
-  root.append(
-    workspaceColumn(
-      {
-        items: dashboard.implementationPlan.items,
-        selectedId: state.selectedId,
-        filter: state.workspaceFilter,
-        generatedAt: dashboard.generatedAt
-      },
-      { onSelect: handleSelect, onFilter: handleFilter }
-    )
-  );
-
+  if (state.windowMode !== 'minimal') {
+    root.append(
+      sidebar({ activeId: 'cockpit', counts: dashboard.statusCounts }),
+      workspaceColumn(
+        {
+          items: dashboard.implementationPlan.items,
+          selectedId: state.selectedId,
+          filter: state.workspaceFilter,
+          generatedAt: dashboard.generatedAt
+        },
+        { onSelect: handleSelect, onFilter: handleFilter }
+      )
+    );
+  }
   // Main content
   root.append(
     el('section', { class: 'cockpit-main', attrs: { id: 'cockpit' } }, [
@@ -176,9 +187,14 @@ function render(): void {
               }
             : undefined,
           activeTab: state.activeTab,
-          isFixture: dashboard.isFixture
+          isFixture: dashboard.isFixture,
+          windowMode: state.windowMode
         },
-        { onTabChange: handleTabChange, onMode: (mode) => void handleSetMode(mode) }
+        {
+          onTabChange: handleTabChange,
+          onMode: (mode) => void handleSetMode(mode),
+          onToggleWindowMode: () => void handleToggleWindowMode()
+        }
       ),
       el('div', { class: 'cockpit-content' }, [
         activityCard(dashboard, selection),
@@ -188,19 +204,19 @@ function render(): void {
           selectedTitle: selection?.title,
           selectedWorkspace: selection?.workspace
         }),
-        capabilitySection(dashboard),
-        diagnosticSection(dashboard)
+        ...(state.windowMode === 'minimal' ? [] : [capabilitySection(dashboard), diagnosticSection(dashboard)])
       ])
     ])
   );
 
-  // Right context rail
-  root.append(
-    contextRail(
-      { dashboard, selectedId: state.selectedId },
-      { onSelect: handleSelect }
-    )
-  );
+  if (state.windowMode !== 'minimal') {
+    root.append(
+      contextRail(
+        { dashboard, selectedId: state.selectedId },
+        { onSelect: handleSelect }
+      )
+    );
+  }
 
   // Composer
   root.append(
@@ -342,17 +358,27 @@ function findInTree(nodes: SessionTreeNodeView[], id: string): SessionTreeNodeVi
 void (async () => {
   render();
   try {
-    const initial = await window.controlPlane.getSnapshot();
+    const [windowMode, initial] = await Promise.all([
+      window.controlPlane.getWindowMode(),
+      window.controlPlane.getSnapshot()
+    ]);
+    state.windowMode = windowMode;
     if (initial) {
       applySnapshot(initial);
     } else {
-      await handleRefresh();
+      state.status = 'refreshing';
+      state.message = 'Waiting for initial snapshot…';
+      render();
     }
   } catch (error) {
     handleError(error);
   }
   window.controlPlane.onSnapshotChanged((snapshot) => {
     applySnapshot(snapshot);
+  });
+  window.controlPlane.onWindowModeChanged((mode) => {
+    state.windowMode = mode;
+    render();
   });
 })();
 

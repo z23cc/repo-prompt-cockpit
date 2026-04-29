@@ -29,7 +29,7 @@ export class DemoFixtureProvider implements RepoPromptProvider {
       sessions: [
         {
           id: 'fixture-orchestrator-parent',
-          title: 'Orchestration Run: Control Plane S-tier',
+          title: 'Orchestration Run: Cockpit S-tier',
           workspace: 'RepoPrompt-control-plane',
           state: 'running',
           model: 'Codex 5.3',

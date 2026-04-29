@@ -130,6 +130,15 @@ a {
   background: var(--bg-window);
 }
 
+.cockpit.is-minimal-mode {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'main'
+    'composer';
+  min-height: 100vh;
+}
+
 .cockpit-loading {
   grid-template-columns: 14.5rem minmax(0, 1fr);
   grid-template-rows: 1fr;
@@ -175,15 +184,19 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.85rem;
-  height: 1.85rem;
-  border-radius: 0.55rem;
+  width: 1.95rem;
+  height: 1.95rem;
+  border-radius: 0.6rem;
   background: linear-gradient(135deg, #0a84ff 0%, #5b5bd6 100%);
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
   box-shadow: 0 1px 2px rgba(10, 132, 255, 0.35);
+  overflow: hidden;
+}
+
+.brand-mark-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .brand-text {
@@ -1303,6 +1316,54 @@ a {
   white-space: nowrap;
 }
 
+
+.workspace-column-more,
+.rail-more-note {
+  margin: 0.4rem 0.15rem 0;
+  padding-top: 0.3rem;
+  border-top: 1px dashed var(--border-subtle);
+}
+
+.btn-window-mode {
+  min-width: 8.75rem;
+}
+
+.cockpit.is-minimal-mode .cockpit-sidebar,
+.cockpit.is-minimal-mode .workspace-column,
+.cockpit.is-minimal-mode .context-rail {
+  display: none;
+}
+
+.cockpit.is-minimal-mode .cockpit-main {
+  min-height: 100vh;
+}
+
+.cockpit.is-minimal-mode .workflow-toolbar {
+  padding: 0.7rem 0.85rem 0.55rem;
+}
+
+.cockpit.is-minimal-mode .workflow-title h1 {
+  font-size: 1rem;
+}
+
+.cockpit.is-minimal-mode .workflow-controls {
+  gap: 0.35rem;
+}
+
+.cockpit.is-minimal-mode .cockpit-content {
+  grid-template-columns: minmax(0, 1fr);
+  padding: 0.8rem;
+}
+
+.cockpit.is-minimal-mode #capabilities,
+.cockpit.is-minimal-mode #diagnostics {
+  display: none;
+}
+
+.cockpit.is-minimal-mode .composer {
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.7fr) auto;
+  padding: 0.5rem 0.8rem;
+}
 .composer-actions {
   display: inline-flex;
   gap: 0.4rem;

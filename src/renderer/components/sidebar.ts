@@ -21,10 +21,15 @@ export function sidebar(options: SidebarOptions = {}): HTMLElement {
   const activeId = options.activeId ?? 'cockpit';
   return el('aside', { class: 'cockpit-sidebar', attrs: { 'aria-label': 'Primary' } }, [
     el('div', { class: 'brand' }, [
-      el('span', { class: 'brand-mark', attrs: { 'aria-hidden': 'true' } }, ['RP']),
+      el('span', { class: 'brand-mark', attrs: { 'aria-hidden': 'true' } }, [
+        el('img', {
+          class: 'brand-mark-image',
+          attrs: { src: './assets/repoprompt-cockpit-logo.png', alt: '' }
+        })
+      ]),
       el('div', { class: 'brand-text' }, [
-        el('strong', undefined, ['Repo Prompt']),
-        el('span', { class: 'brand-sub' }, ['Cockpit · read-only'])
+        el('strong', undefined, ['Repo Prompt Cockpit']),
+        el('span', { class: 'brand-sub' }, ['Read-only desktop companion'])
       ])
     ]),
     el('div', { class: 'sidebar-section-label' }, ['Workspace']),
@@ -59,7 +64,7 @@ function parkedSurfacesNote(): HTMLElement {
   return el('div', { class: 'sidebar-parked-note', attrs: { role: 'note' } }, [
     el('strong', undefined, ['Parked surfaces']),
     el('span', undefined, [
-      ' Unsupported surfaces are not shown as navigation until the provider exposes observable data for them.'
+      'Unsupported surfaces stay hidden until the provider can expose real data for them.'
     ])
   ]);
 }

@@ -30,6 +30,8 @@ const FILTER_STATE_MAP: Record<Exclude<WorkspaceFilter, 'all'>, SessionState> = 
   blocked: 'blocked'
 };
 
+const MAX_VISIBLE_SESSION_CARDS = 10;
+
 export function workspaceColumn(
   options: WorkspaceColumnOptions,
   handlers: WorkspaceColumnHandlers
@@ -38,12 +40,14 @@ export function workspaceColumn(
   const placeholders = options.items.filter((item) => item.kind === 'placeholder');
   const counts = filterCounts(options.items);
   const filtered = filterItems(options.items, options.filter);
+  const visibleItems = filtered.slice(0, MAX_VISIBLE_SESSION_CARDS);
+  const hiddenCount = Math.max(0, filtered.length - visibleItems.length);
   const now = parseTimestamp(options.generatedAt);
 
   const head = el('header', { class: 'workspace-column-head' }, [
     el('div', { class: 'workspace-column-title' }, [
       el('h2', undefined, ['Workspaces']),
-      el('span', { class: 'panel-sub' }, [sessionCountLabel(realSessions.length)])
+      el('span', { class: 'panel-sub' }, [sessionCountLabel(realSessions.length, visibleItems.length, filtered.length)])
     ]),
     el(
       'div',
@@ -62,7 +66,14 @@ export function workspaceColumn(
       : el(
           'div',
           { class: 'workspace-column-list', attrs: { role: 'list' } },
-          filtered.map((item) => sessionCard(item, options.selectedId, now, handlers))
+          [
+            ...visibleItems.map((item) => sessionCard(item, options.selectedId, now, handlers)),
+            hiddenCount > 0
+              ? el('p', { class: 'workspace-column-more muted small' }, [
+                  `Showing ${visibleItems.length} of ${filtered.length} sessions in this view.`
+                ])
+              : null
+          ]
         );
 
   return el('section', { class: 'workspace-column', attrs: { id: 'workspaces', 'aria-label': 'Workspaces and sessions' } }, [
@@ -71,9 +82,10 @@ export function workspaceColumn(
   ]);
 }
 
-function sessionCountLabel(count: number): string {
-  if (count === 0) return 'session state unavailable';
-  return count === 1 ? '1 session' : `${count} sessions`;
+function sessionCountLabel(totalCount: number, visibleCount: number, filteredCount: number): string {
+  if (totalCount === 0) return 'session state unavailable';
+  if (filteredCount > visibleCount) return `${totalCount} sessions · showing ${visibleCount}`;
+  return totalCount === 1 ? '1 session' : `${totalCount} sessions`;
 }
 
 function filterTab(

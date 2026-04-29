@@ -142,7 +142,7 @@ describe('sidebar rendering', () => {
     expect(text).toContain('Cockpit');
     expect(text).toContain('Workspaces');
     expect(text).toContain('Parked surfaces');
-    expect(text).toContain('not shown as navigation');
+    expect(text).toContain('stay hidden until the provider can expose real data');
     expect(text).not.toContain('soon');
     expect(text).not.toContain('Worktrees');
     expect(text).not.toContain('MCP Servers');

@@ -5,12 +5,14 @@ import { buildTrayTemplate, buildTrayTitle } from '../src/main/trayMenu.js';
 import type { ControlPlaneSnapshot } from '../src/shared/types.js';
 
 describe('tray menu', () => {
-  it('builds grouped fixture-labeled sections with refresh and copy actions', async () => {
+  it('builds grouped fixture-labeled sections with refresh, copy, and window-mode actions', async () => {
     const snapshot = await new DemoFixtureProvider(() => new Date('2026-04-28T00:00:00Z')).collectSnapshot();
     const refreshNow = vi.fn();
     const copySummary = vi.fn();
     const menu = buildTrayTemplate(snapshot, {
+      windowMode: 'desktop',
       openControlPlane: vi.fn(),
+      toggleWindowMode: vi.fn(),
       refreshNow,
       copySummary,
       switchToFixtureMode: vi.fn(),
@@ -19,11 +21,12 @@ describe('tray menu', () => {
     });
     const labels = menuLabels(menu);
 
-    expect(buildTrayTitle(snapshot)).toMatch(/^RP demo \d+s \d+▶ \d+\?$/);
+    expect(buildTrayTitle(snapshot)).toMatch(/^RPC demo \d+s \d+▶ \d+\?$/);
     expect(labels).toEqual(
-      expect.arrayContaining(['Focus next', 'Sessions', 'Workspaces', 'Capabilities', 'Diagnostics', 'Actions', 'Open Control Plane', 'Copy summary'])
+      expect.arrayContaining(['Focus next', 'Sessions', 'Workspaces', 'Capabilities', 'Diagnostics', 'Actions', 'Open Cockpit', 'Copy summary'])
     );
     expect(labels).toContain('Use live rp-cli mode');
+    expect(labels).toContain('Enter Minimal mode');
     expect(labels.some((label) => label.includes('[fixture]'))).toBe(true);
     expect(labels.some((label) => label.startsWith('Waiting'))).toBe(true);
     expect(labels.some((label) => label.startsWith('Running'))).toBe(true);
@@ -62,7 +65,9 @@ describe('tray menu', () => {
 
     const labels = menuLabels(
       buildTrayTemplate(snapshot, {
+        windowMode: 'minimal',
         openControlPlane: vi.fn(),
+        toggleWindowMode: vi.fn(),
         refreshNow: vi.fn(),
         copySummary: vi.fn(),
         switchToFixtureMode: vi.fn(),
@@ -71,11 +76,12 @@ describe('tray menu', () => {
       })
     );
 
-    expect(buildTrayTitle(snapshot)).toBe('RP 0s 0▶ 0?');
+    expect(buildTrayTitle(snapshot)).toBe('RPC 0s 0▶ 0?');
     expect(labels).toContain('[unavailable] No live session rows available');
     expect(labels).toContain('[observed] RepoPrompt-control-plane');
     expect(labels).toContain('[observed] warning: session_status_requires_binding');
-    expect(labels).toContain('Open Control Plane');
+    expect(labels).toContain('Open Cockpit');
+    expect(labels).toContain('Return to Desktop mode');
     expect(labels).toContain('Use fixture demo mode');
   });
 });

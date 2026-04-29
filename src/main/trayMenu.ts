@@ -1,10 +1,12 @@
 import type { MenuItemConstructorOptions } from 'electron';
-import type { AgentSession, ControlPlaneSnapshot, ObservationKind, SessionState } from '../shared/types.js';
+import type { AgentSession, ControlPlaneSnapshot, ObservationKind, SessionState, WindowMode } from '../shared/types.js';
 import { deriveAttentionItems } from '../domain/attention.js';
 import { createDeterministicSummary } from '../domain/summary.js';
 
 export interface TrayMenuActions {
+  windowMode: WindowMode;
   openControlPlane(): void;
+  toggleWindowMode(): void;
   refreshNow(): void;
   copySummary(): void;
   switchToFixtureMode(): void;
@@ -22,14 +24,17 @@ const SESSION_GROUPS: Array<{ state: SessionState; label: string }> = [
   { state: 'unknown', label: 'Unknown' }
 ];
 
+const MAX_TRAY_SESSION_ROWS = 10;
+const MAX_TRAY_WORKSPACE_ROWS = 6;
+
 export function buildTrayTitle(snapshot: ControlPlaneSnapshot): string {
   const totalSessions = snapshot.sessions.length;
   const running = snapshot.sessions.filter((session) => session.state === 'running').length;
   const waiting = snapshot.sessions.filter((session) => session.state === 'waiting_for_input').length;
   const diagnosticErrors = snapshot.diagnostics.filter((diagnostic) => diagnostic.severity === 'error').length;
-  if (snapshot.provider === 'demo-fixture') return `RP demo ${totalSessions}s ${running}▶ ${waiting}?`;
-  if (diagnosticErrors > 0) return `RP ! ${diagnosticErrors}`;
-  return `RP ${totalSessions}s ${running}▶ ${waiting}?`;
+  if (snapshot.provider === 'demo-fixture') return `RPC demo ${totalSessions}s ${running}▶ ${waiting}?`;
+  if (diagnosticErrors > 0) return `RPC ! ${diagnosticErrors}`;
+  return `RPC ${totalSessions}s ${running}▶ ${waiting}?`;
 }
 
 export function buildTrayTemplate(snapshot: ControlPlaneSnapshot, actions: TrayMenuActions): MenuItemConstructorOptions[] {
@@ -69,7 +74,8 @@ export function buildTrayTemplate(snapshot: ControlPlaneSnapshot, actions: TrayM
     separator(),
     disabledHeader('Actions'),
     { label: truncateLabel(summary), enabled: false },
-    { label: 'Open Control Plane', click: actions.openControlPlane },
+    { label: 'Open Cockpit', click: actions.openControlPlane },
+    { label: actions.windowMode === 'minimal' ? 'Return to Desktop mode' : 'Enter Minimal mode', click: actions.toggleWindowMode },
     { label: 'Refresh now', click: actions.refreshNow },
     { label: 'Copy summary', click: actions.copySummary },
     { label: 'Use fixture demo mode', click: actions.switchToFixtureMode, visible: snapshot.provider !== 'demo-fixture' },
@@ -84,7 +90,7 @@ function sessionRows(sessions: AgentSession[]): MenuItemConstructorOptions[] {
     return [disabledRow('[unavailable] No live session rows available')];
   }
 
-  return SESSION_GROUPS.flatMap(({ state, label }) => {
+  const grouped = SESSION_GROUPS.flatMap(({ state, label }) => {
     const groupSessions = sessions.filter((session) => session.state === state);
     if (groupSessions.length === 0) return [];
     return [
@@ -96,6 +102,11 @@ function sessionRows(sessions: AgentSession[]): MenuItemConstructorOptions[] {
       }))
     ];
   });
+
+  if (grouped.length <= MAX_TRAY_SESSION_ROWS + SESSION_GROUPS.length) return grouped;
+  const visibleRows = grouped.slice(0, MAX_TRAY_SESSION_ROWS + 2);
+  visibleRows.push(disabledRow(`… ${sessions.length - Math.min(sessions.length, MAX_TRAY_SESSION_ROWS)} more session rows hidden`));
+  return visibleRows;
 }
 
 function workspaceRows(snapshot: ControlPlaneSnapshot): MenuItemConstructorOptions[] {
@@ -103,7 +114,7 @@ function workspaceRows(snapshot: ControlPlaneSnapshot): MenuItemConstructorOptio
     return [disabledRow('[unavailable] No RepoPrompt workspaces observed')];
   }
 
-  return snapshot.windows.slice(0, 8).map<MenuItemConstructorOptions>((window) => {
+  const visible = snapshot.windows.slice(0, MAX_TRAY_WORKSPACE_ROWS).map<MenuItemConstructorOptions>((window) => {
     const activeTab = window.tabs.find((tab) => tab.active);
     return {
       label: `${observationLabel(window.observation)} ${window.workspace}`,
@@ -113,6 +124,12 @@ function workspaceRows(snapshot: ControlPlaneSnapshot): MenuItemConstructorOptio
       enabled: false
     };
   });
+
+  if (snapshot.windows.length > MAX_TRAY_WORKSPACE_ROWS) {
+    visible.push(disabledRow(`… ${snapshot.windows.length - MAX_TRAY_WORKSPACE_ROWS} more workspaces hidden`));
+  }
+
+  return visible;
 }
 
 function sessionSublabel(session: AgentSession): string {

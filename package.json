@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "license": "Apache-2.0",
-  "description": "Menu-bar-first RepoPrompt control plane MVP.",
+  "description": "Desktop cockpit companion for Repo Prompt workspaces and sessions.",
   "main": "electron-main.cjs",
   "type": "module",
   "scripts": {

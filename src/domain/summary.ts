@@ -11,7 +11,7 @@ export function createDeterministicSummary(
   const counts = countStates(snapshot);
   const focus = attention[0];
   const lines = [
-    `RepoPrompt Control Plane (${snapshot.provider}${snapshot.summarySource === 'fixture' ? ', fixture-backed' : ''})`,
+    `Repo Prompt Cockpit (${snapshot.provider}${snapshot.summarySource === 'fixture' ? ', fixture-backed' : ''})`,
     `Workspaces: ${snapshot.windows.length}; Sessions: ${snapshot.sessions.length}; Running: ${counts.running}; Waiting: ${counts.waiting_for_input}; Blocked: ${counts.blocked}; Failed: ${counts.failed}; Completed: ${counts.completed}`,
     focus ? `Focus next [${focus.observation}]: ${focus.label} — ${focus.detail}` : 'Focus next: No actionable session data available',
     diagnosticsLine(snapshot),

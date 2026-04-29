@@ -1,5 +1,5 @@
 import type { ActivityPanelTab, ControlPlaneDashboard } from '../../domain/dashboard.js';
-import type { ProviderMode, SessionState } from '../../shared/types.js';
+import type { ProviderMode, SessionState, WindowMode } from '../../shared/types.js';
 import { classNames, el } from './dom.js';
 import { stateLabel } from './format.js';
 
@@ -16,6 +16,7 @@ export interface SelectedSummary {
 export interface WorkflowToolbarHandlers {
   onTabChange(tab: WorkflowTabKey): void;
   onMode(mode: ProviderMode): void;
+  onToggleWindowMode(): void;
 }
 
 export interface WorkflowTabDescriptor {
@@ -30,6 +31,7 @@ export interface WorkflowToolbarOptions {
   selected: SelectedSummary | undefined;
   activeTab: WorkflowTabKey;
   isFixture: boolean;
+  windowMode: WindowMode;
 }
 
 const WORKFLOW_TAB_ORDER: WorkflowTabKey[] = ['plan', 'activity', 'artifacts', 'logs', 'results'];
@@ -102,7 +104,8 @@ export function workflowToolbar(
       ]),
       el('div', { class: 'workflow-controls' }, [
         modelChip(selected),
-        modeSegment(options.isFixture, handlers)
+        modeSegment(options.isFixture, handlers),
+        windowModeButton(options.windowMode, handlers)
       ])
     ]),
     el(
@@ -144,7 +147,6 @@ function workflowTab(
           ])
     ]
   );
-  // Tabs are clickable for switching even if unavailable — they show an honest empty state.
   node.addEventListener('click', () => handlers.onTabChange(tab.key));
   return node;
 }
@@ -180,4 +182,24 @@ function modeSegment(isFixture: boolean, handlers: WorkflowToolbarHandlers): HTM
     live,
     fixture
   ]);
+}
+
+function windowModeButton(windowMode: WindowMode, handlers: WorkflowToolbarHandlers): HTMLElement {
+  const label = windowMode === 'minimal' ? 'Desktop mode' : 'Minimal mode';
+  const button = el(
+    'button',
+    {
+      class: classNames('btn-segment', 'btn-window-mode', windowMode === 'minimal' && 'is-active'),
+      attrs: {
+        type: 'button',
+        title:
+          windowMode === 'minimal'
+            ? 'Return to the full desktop cockpit window'
+            : 'Shrink the cockpit into an always-on-top minimal window'
+      }
+    },
+    [label]
+  );
+  button.addEventListener('click', () => handlers.onToggleWindowMode());
+  return button;
 }

@@ -7,6 +7,7 @@ export type PrivacyClass = 'metadata' | 'log_excerpt' | 'transcript' | 'local_on
 export type SessionState = 'running' | 'waiting_for_input' | 'blocked' | 'completed' | 'failed' | 'idle' | 'unknown';
 
 export type ProviderMode = 'live' | 'fixture';
+export type WindowMode = 'desktop' | 'minimal';
 
 export interface ProviderDiagnostic {
   code: string;
@@ -92,6 +93,8 @@ export interface ControlPlaneConfig {
   openWindowOnStart: boolean;
   desktopWindowWidth: number;
   desktopWindowHeight: number;
+  minimalWindowWidth: number;
+  minimalWindowHeight: number;
 }
 
 export interface RepoPromptProvider {

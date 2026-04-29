@@ -36,22 +36,41 @@ export function contextRail(
 
 /* ── Workspace/context metadata ─────────────────────────────────── */
 
+const MAX_VISIBLE_WORKSPACE_GROUPS = 4;
+const MAX_VISIBLE_CONTEXT_TABS_PER_WORKSPACE = 3;
+
 function filesSection(workspaces: WorkspaceView[]): HTMLElement {
-  const contextCount = workspaces.reduce((count, workspace) => count + workspace.contextTabs.length, 0);
+  const visibleWorkspaces = workspaces.slice(0, MAX_VISIBLE_WORKSPACE_GROUPS);
+  const hiddenWorkspaceCount = Math.max(0, workspaces.length - visibleWorkspaces.length);
+  const visibleContextCount = visibleWorkspaces.reduce(
+    (count, workspace) => count + Math.min(workspace.contextTabs.length, MAX_VISIBLE_CONTEXT_TABS_PER_WORKSPACE),
+    0
+  );
+  const hiddenContextCount = visibleWorkspaces.reduce(
+    (count, workspace) => count + Math.max(0, workspace.contextTabs.length - MAX_VISIBLE_CONTEXT_TABS_PER_WORKSPACE),
+    0
+  );
   const body =
     workspaces.length === 0
       ? el('p', { class: 'rail-empty' }, ['No workspace or tab/context metadata in this snapshot.'])
       : el(
           'div',
           { class: 'rail-list' },
-          workspaces.map((workspace) => workspaceContextGroup(workspace))
+          [
+            ...visibleWorkspaces.map((workspace) => workspaceContextGroup(workspace)),
+            hiddenWorkspaceCount > 0 || hiddenContextCount > 0
+              ? el('p', { class: 'rail-empty rail-more-note' }, [
+                  `${hiddenWorkspaceCount > 0 ? `${hiddenWorkspaceCount} more workspaces` : ''}${hiddenWorkspaceCount > 0 && hiddenContextCount > 0 ? ' · ' : ''}${hiddenContextCount > 0 ? `${hiddenContextCount} more context tabs` : ''} hidden for readability.`
+                ])
+              : null
+          ]
         );
 
   return el('section', { class: 'rail-section' }, [
     el('div', { class: 'rail-section-head' }, [
       el('span', { class: 'rail-section-title' }, ['Workspace/context metadata']),
       el('span', { class: 'rail-section-sub' }, [
-        `${pluralize(workspaces.length, 'workspace')} · ${pluralize(contextCount, 'context tab')}`
+        `${visibleWorkspaces.length} shown · ${visibleContextCount} context tabs`
       ])
     ]),
     body
@@ -59,6 +78,8 @@ function filesSection(workspaces: WorkspaceView[]): HTMLElement {
 }
 
 function workspaceContextGroup(workspace: WorkspaceView): HTMLElement {
+  const visibleTabs = workspace.contextTabs.slice(0, MAX_VISIBLE_CONTEXT_TABS_PER_WORKSPACE);
+  const hiddenTabs = Math.max(0, workspace.contextTabs.length - visibleTabs.length);
   return el('div', { class: 'rail-context-group' }, [
     el('div', { class: 'rail-row is-static' }, [
       el('div', { class: 'rail-row-title' }, [
@@ -72,7 +93,8 @@ function workspaceContextGroup(workspace: WorkspaceView): HTMLElement {
         workspace.repoPath ?? `${pluralize(workspace.windowIds.length, 'window')} · ${pluralize(workspace.tabCount, 'tab')}`
       ])
     ]),
-    ...workspace.contextTabs.map((tab) => contextTabRow(tab))
+    ...visibleTabs.map((tab) => contextTabRow(tab)),
+    hiddenTabs > 0 ? el('p', { class: 'rail-empty rail-more-note' }, [`${hiddenTabs} more context tabs hidden.`]) : null
   ]);
 }
 
