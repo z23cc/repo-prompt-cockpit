@@ -93,7 +93,26 @@ That contract is part of the product, not an implementation detail:
 - the deterministic copy-summary is metadata-only and bounded by `RP_CONTROL_PLANE_SUMMARY_MAX_CHARS` (default `1200`)
 - no LLM calls are made unless explicitly configured; the shipped app does not wire one by default
 
-## Running the app
+## How to use
+
+> Repo Prompt Cockpit currently ships as an unsigned macOS preview build.
+
+1. Download the latest `.dmg` or `.zip` from [GitHub Releases](https://github.com/zakelfassi/repo-prompt-cockpit/releases/latest).
+2. Open the `.dmg` or unzip the archive.
+3. Drag **Repo Prompt Cockpit.app** to Applications, or run it from the extracted folder.
+4. On first launch, macOS may warn that the app is from an unidentified developer. Use right-click → **Open** to confirm you want to launch it.
+
+If macOS quarantine blocks an internal test machine, remove quarantine explicitly:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Repo\ Prompt\ Cockpit.app
+```
+
+With Repo Prompt running, Cockpit starts in live mode and shows observed workspace/session metadata from `rp-cli`. If live binding is unavailable, switch to demo mode from the tray menu to verify the desktop cockpit, mini mode, tray menu, and copy-summary flow with deterministic demo data.
+
+Cockpit is unsigned and not notarized today. That is expected for the preview release path; Gatekeeper may still warn even though the local package script ad-hoc signs the app bundle for codesign integrity.
+
+## How to build locally / contribute
 
 Install dependencies:
 
@@ -115,44 +134,25 @@ RP_CONTROL_PLANE_DEMO=1 pnpm dev
 
 Demo mode is the safest path for screenshots, previews, and review when a live Repo Prompt binding is not available.
 
-## Packaging an unsigned macOS preview build
-
-For internal review or Discord/private preview distribution, build a local unsigned macOS artifact:
+Build local unsigned macOS preview artifacts:
 
 ```bash
-pnpm install
 pnpm package:mac
 ```
 
-That command runs the TypeScript build, assembles `Repo Prompt Cockpit.app` from the installed Electron runtime, and writes preview artifacts to `release/`:
+That command runs the TypeScript build, assembles `Repo Prompt Cockpit.app` from the installed Electron runtime, ad-hoc signs the preview bundle, and writes artifacts to `release/`:
 
 - `release/mac-preview/Repo Prompt Cockpit.app` — local app bundle for quick testing
 - `release/Repo Prompt Cockpit-<version>-mac-<arch>.zip` — shareable zip
 
-For a fast app-bundle-only smoke pass, or an optional disk image, run:
+For a fast app-bundle-only smoke pass, or a disk image, run:
 
 ```bash
 pnpm package:mac:app  # app bundle only
 pnpm package:mac:dmg  # app bundle, zip, and dmg when hdiutil is available
 ```
 
-The zip is the primary private preview artifact because it does not require signing, notarization, or macOS disk-image device support.
-
-The GitHub Actions workflow **macOS Preview Package** can also be run manually from the Actions tab. It runs `pnpm verify`, builds the same unsigned macOS preview artifacts, and uploads them as workflow artifacts so reviewers can try the app without cloning the repository.
-
-Install/test path for recipients:
-
-1. Download the workflow artifact or local `.zip` / optional `.dmg`.
-2. Unzip or mount it, then drag **Repo Prompt Cockpit.app** to Applications or run it from the extracted folder.
-3. On first launch, macOS may warn that the app is from an unidentified developer. Use right-click → **Open**, or for internal test machines remove quarantine with:
-
-   ```bash
-   xattr -dr com.apple.quarantine /Applications/Repo\ Prompt\ Cockpit.app
-   ```
-
-4. If a live `rp-cli` binding is unavailable, use the tray action **Use fixture demo mode** to verify the desktop cockpit, mini mode, tray menu, and copy-summary flow with deterministic demo data.
-
-Signing, hardened runtime, and notarization are intentionally out of scope for this private preview path. These artifacts are useful for internal testing, demos, and Discord distribution, but they are not a polished public macOS release.
+The GitHub Actions workflow **macOS Preview Package** can also be run manually from the Actions tab. It runs `pnpm verify`, builds the same unsigned macOS preview artifacts, and uploads them as workflow artifacts.
 
 ## Useful environment variables
 
@@ -182,7 +182,7 @@ If you need body-level detail:
 
 Repo Prompt remains the source of truth for those deeper views.
 
-## Verification
+## Contributor verification
 
 Before opening a PR, run:
 
@@ -222,12 +222,13 @@ That choice is deliberate: permissive, easy to consume, and clearer for team/com
 
 ## Release scope
 
-This repository is prepared for source use and unsigned macOS private previews.
+This repository is ready for source use and unsigned macOS preview releases.
 
 Supported workflows today:
 
-- `pnpm dev`
-- `pnpm verify`
-- `pnpm package:mac` for an unsigned internal macOS preview build
+- download the latest unsigned macOS `.dmg` / `.zip` from [GitHub Releases](https://github.com/zakelfassi/repo-prompt-cockpit/releases/latest)
+- `pnpm dev` for local development
+- `pnpm verify` before opening or merging changes
+- `pnpm package:mac` / `pnpm package:mac:dmg` for local unsigned macOS preview builds
 
-Code signing, hardened runtime, notarization, auto-update, and public release distribution are follow-on work.
+Developer ID signing, hardened runtime, notarization, auto-update, and fully trusted macOS distribution are follow-on work.
