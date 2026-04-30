@@ -10,6 +10,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "pnpm build && electron .",
+    "package:mac": "tsx scripts/package-macos-preview.ts",
+    "package:mac:app": "tsx scripts/package-macos-preview.ts --skip-zip",
+    "package:mac:dmg": "tsx scripts/package-macos-preview.ts --dmg",
     "lint": "eslint .",
     "test": "vitest run",
     "probe:rp": "tsx scripts/probe-rp-cli.ts",
