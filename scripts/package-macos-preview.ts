@@ -23,14 +23,16 @@ const releaseRoot = join(repoRoot, 'release');
 const workRoot = join(releaseRoot, 'mac-preview');
 const appPath = join(workRoot, `${appName}.app`);
 const dmgRoot = join(workRoot, 'dmg-root');
+const stagedAppPath = join(dmgRoot, basename(appPath));
 const electronAppPath = join(repoRoot, 'node_modules', 'electron', 'dist', 'Electron.app');
 const tscPath = join(repoRoot, 'node_modules', '.bin', 'tsc');
 const appResourcesPath = join(appPath, 'Contents', 'Resources', 'app');
 const appExecutablePath = join(appPath, 'Contents', 'MacOS', appName);
 const defaultElectronExecutablePath = join(appPath, 'Contents', 'MacOS', 'Electron');
-const bundleIconFile = 'repoprompt-cockpit.icns';
+const customBundleIconFile = 'repoprompt-cockpit.icns';
+let bundleIconFile = customBundleIconFile;
 const logoPngPath = join(repoRoot, 'src', 'renderer', 'assets', 'repoprompt-cockpit-logo.png');
-const bundleIconPath = join(appPath, 'Contents', 'Resources', bundleIconFile);
+const bundleIconPath = join(appPath, 'Contents', 'Resources', customBundleIconFile);
 const iconsetPath = join(workRoot, 'repoprompt-cockpit.iconset');
 const version = packageMetadata.version;
 const zipPath = join(releaseRoot, `${appName}-${version}-mac-${artifactArch}.zip`);
@@ -48,11 +50,24 @@ function run(command: string, commandArgs: string[]): void {
   execFileSync(command, commandArgs, { cwd: repoRoot, stdio: 'inherit' });
 }
 
+function tryRun(command: string, commandArgs: string[]): boolean {
+  try {
+    run(command, commandArgs);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function requirePath(path: string, description: string): void {
+  if (!existsSync(path)) fail(`Expected ${description} is missing: ${path}`);
+}
+
 function copyIntoApp(relativePath: string): void {
   const source = join(repoRoot, relativePath);
   const destination = join(appResourcesPath, relativePath);
 
-  if (!existsSync(source)) fail(`Expected build input is missing: ${relativePath}`);
+  requirePath(source, 'build input');
   mkdirSync(join(destination, '..'), { recursive: true });
   cpSync(source, destination, { recursive: true });
 }
@@ -92,6 +107,7 @@ function updateInfoPlist(): void {
 
 function writeBundleIcon(): void {
   if (!existsSync(logoPngPath)) fail(`Expected app icon source is missing: ${logoPngPath}`);
+  bundleIconFile = customBundleIconFile;
   rmSync(iconsetPath, { recursive: true, force: true });
   mkdirSync(iconsetPath, { recursive: true });
 
@@ -113,9 +129,16 @@ function writeBundleIcon(): void {
     run('sips', ['-z', pixels, pixels, logoPngPath, '--out', join(iconsetPath, iconFile.filename)]);
   }
 
-  run('iconutil', ['-c', 'icns', iconsetPath, '-o', bundleIconPath]);
+  const defaultElectronIconPath = join(appPath, 'Contents', 'Resources', 'electron.icns');
+  const wroteCustomIcon = tryRun('iconutil', ['-c', 'icns', iconsetPath, '-o', bundleIconPath]);
   rmSync(iconsetPath, { recursive: true, force: true });
-  rmSync(join(appPath, 'Contents', 'Resources', 'electron.icns'), { force: true });
+  if (wroteCustomIcon) {
+    rmSync(defaultElectronIconPath, { force: true });
+    return;
+  }
+
+  bundleIconFile = 'electron.icns';
+  console.warn('Custom app icon generation failed; keeping the default Electron preview icon.');
 }
 
 function writeRuntimePackageJson(): void {
@@ -131,6 +154,27 @@ function writeRuntimePackageJson(): void {
   };
 
   writeFileSync(join(appResourcesPath, 'package.json'), `${JSON.stringify(runtimePackageJson, null, 2)}\n`);
+}
+
+function copyBundleForDmg(sourceAppPath: string, destinationAppPath: string): void {
+  rmSync(destinationAppPath, { recursive: true, force: true });
+  run('ditto', [sourceAppPath, destinationAppPath]);
+}
+
+function validateStagedAppBundle(): void {
+  const stagedExecutablePath = join(stagedAppPath, 'Contents', 'MacOS', appName);
+  const stagedIcuPath = join(
+    stagedAppPath,
+    'Contents',
+    'Frameworks',
+    'Electron Framework.framework',
+    'Resources',
+    'icudtl.dat'
+  );
+
+  requirePath(stagedExecutablePath, 'DMG-staged app executable');
+  requirePath(stagedIcuPath, 'DMG-staged Electron ICU resource');
+  run('codesign', ['--verify', '--deep', '--strict', '--verbose=2', stagedAppPath]);
 }
 
 if (platform() !== 'darwin') {
@@ -160,8 +204,8 @@ if (existsSync(defaultElectronExecutablePath)) {
   rmSync(defaultElectronExecutablePath, { force: true });
 }
 
-updateInfoPlist();
 writeBundleIcon();
+updateInfoPlist();
 mkdirSync(appResourcesPath, { recursive: true });
 copyIntoApp('electron-main.cjs');
 copyIntoApp('dist/src');
@@ -193,7 +237,8 @@ if (shouldZip) {
 
 if (shouldDmg) {
   mkdirSync(dmgRoot, { recursive: true });
-  cpSync(appPath, join(dmgRoot, basename(appPath)), { recursive: true });
+  copyBundleForDmg(appPath, stagedAppPath);
+  validateStagedAppBundle();
   run('hdiutil', ['create', '-volname', appName, '-srcfolder', dmgRoot, '-ov', '-format', 'UDZO', dmgPath]);
 }
 

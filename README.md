@@ -152,7 +152,7 @@ pnpm package:mac:app  # app bundle only
 pnpm package:mac:dmg  # app bundle, zip, and dmg when hdiutil is available
 ```
 
-The GitHub Actions workflow **macOS Preview Package** can also be run manually from the Actions tab. It runs `pnpm verify`, builds the same unsigned macOS preview artifacts, and uploads them as workflow artifacts.
+The DMG build stages the app with macOS bundle-preserving copy semantics and validates the staged executable, Electron ICU resource, and ad-hoc signature before creating the disk image. The GitHub Actions workflow **macOS Preview Package** can also be run manually from the Actions tab. It runs `pnpm verify`, builds the same unsigned macOS preview artifacts including the DMG, and uploads them as workflow artifacts.
 
 ## Useful environment variables
 
@@ -229,6 +229,6 @@ Supported workflows today:
 - download the latest unsigned macOS `.dmg` / `.zip` from [GitHub Releases](https://github.com/zakelfassi/repo-prompt-cockpit/releases/latest)
 - `pnpm dev` for local development
 - `pnpm verify` before opening or merging changes
-- `pnpm package:mac` / `pnpm package:mac:dmg` for local unsigned macOS preview builds
+- `pnpm package:mac` / `pnpm package:mac:dmg` for local unsigned macOS preview builds; the DMG path validates the staged app before image creation
 
 Developer ID signing, hardened runtime, notarization, auto-update, and fully trusted macOS distribution are follow-on work.

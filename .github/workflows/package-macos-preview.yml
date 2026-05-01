@@ -31,7 +31,7 @@ jobs:
         run: pnpm verify
 
       - name: Build unsigned macOS preview package
-        run: pnpm package:mac
+        run: pnpm package:mac:dmg
 
       - name: Upload preview artifacts
         uses: actions/upload-artifact@v4
