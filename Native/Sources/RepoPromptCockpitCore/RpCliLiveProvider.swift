@@ -27,8 +27,13 @@ public struct ProcessRpCliSubprocessRunner: RpCliSubprocessRunner {
             let process = Process()
             let stdout = Pipe()
             let stderr = Pipe()
-            process.executableURL = URL(fileURLWithPath: executable)
-            process.arguments = args
+            if executable.contains("/") {
+                process.executableURL = URL(fileURLWithPath: executable)
+                process.arguments = args
+            } else {
+                process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+                process.arguments = [executable] + args
+            }
             process.standardOutput = stdout
             process.standardError = stderr
 

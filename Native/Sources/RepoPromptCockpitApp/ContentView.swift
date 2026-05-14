@@ -196,8 +196,14 @@ struct CockpitSidebarView: View {
 
             CountStrip(counts: store.derivedState.statusCounts, compact: true, sidebar: true)
 
-            WorkspaceSessionListView(store: store)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 14) {
+                    WorkspaceSessionListView(store: store, scrolls: false)
+                    SidebarContextSectionsView(store: store)
+                }
+                .padding(.vertical, 2)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
@@ -250,39 +256,48 @@ struct CockpitSidebarView: View {
 
 struct WorkspaceSessionListView: View {
     @ObservedObject var store: DashboardStore
+    var scrolls: Bool = true
 
     private let filters: [DashboardSessionFilter] = [.all, .running, .blocked, .waitingForInput]
     private let maxVisibleCards = 10
 
     var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 12) {
-                SectionHeader(title: "Sub-agents", subtitle: sessionCountLabel)
-                FilterChips(selectedFilter: store.sessionFilter, filters: filters, counts: filterCounts) { filter in
-                    store.setSessionFilter(filter)
-                }
+        if scrolls {
+            ScrollView(.vertical, showsIndicators: false) {
+                listContent
+                    .padding(.vertical, 2)
+            }
+        } else {
+            listContent
+        }
+    }
 
-                if realSessionItems.isEmpty {
-                    TruthfulEmptyState(text: placeholderDetail)
-                } else if filteredItems.isEmpty {
-                    TruthfulEmptyState(text: "No sessions match the current filter.")
-                } else {
-                    ForEach(statusGroups) { group in
-                        SessionStatusGroupSection(
-                            group: group,
-                            selectedSessionId: store.selectedSessionId,
-                            generatedAt: store.latestSnapshot?.generatedAt,
-                            selectItem: selectItem
-                        )
-                    }
-                    if hiddenCount > 0 {
-                        Text("Showing \(visibleItems.count) of \(filteredItems.count) sessions in this view.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+    private var listContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: "Sub-agents", subtitle: sessionCountLabel)
+            FilterChips(selectedFilter: store.sessionFilter, filters: filters, counts: filterCounts) { filter in
+                store.setSessionFilter(filter)
+            }
+
+            if realSessionItems.isEmpty {
+                TruthfulEmptyState(text: placeholderDetail)
+            } else if filteredItems.isEmpty {
+                TruthfulEmptyState(text: "No sessions match the current filter.")
+            } else {
+                ForEach(statusGroups) { group in
+                    SessionStatusGroupSection(
+                        group: group,
+                        selectedSessionId: store.selectedSessionId,
+                        generatedAt: store.latestSnapshot?.generatedAt,
+                        selectItem: selectItem
+                    )
+                }
+                if hiddenCount > 0 {
+                    Text("Showing \(visibleItems.count) of \(filteredItems.count) sessions in this view.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
-            .padding(.vertical, 2)
         }
     }
 

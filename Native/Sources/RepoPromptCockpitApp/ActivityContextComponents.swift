@@ -505,6 +505,39 @@ struct CockpitInspectorView: View {
     }
 }
 
+struct SidebarContextSectionsView: View {
+    @ObservedObject var store: DashboardStore
+    @State private var expandedGroups: Set<InspectorGroupID> = [.tabsAndContexts]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: "Context", subtitle: "\(store.derivedState.workspaces.count) workspace\(store.derivedState.workspaces.count == 1 ? "" : "s")")
+
+            InspectorGroup(title: "Tabs & Contexts", subtitle: "\(store.derivedState.workspaces.count) workspace\(store.derivedState.workspaces.count == 1 ? "" : "s")", isExpanded: binding(for: .tabsAndContexts)) {
+                WorkspaceContextRailSection(workspaces: store.derivedState.workspaces)
+            }
+            InspectorGroup(title: "Context Focus", subtitle: store.derivedState.attentionItems.isEmpty ? "none" : "\(store.derivedState.attentionItems.count) item\(store.derivedState.attentionItems.count == 1 ? "" : "s")", isExpanded: binding(for: .contextFocus)) {
+                FocusRailSection(items: store.derivedState.attentionItems, selectedId: store.selectedSessionId) { id in
+                    store.selectSession(id: id)
+                    store.selectTab(.plan)
+                }
+            }
+            InspectorGroup(title: "Snapshot Progress", subtitle: "\(store.derivedState.statusCounts.sessions) session\(store.derivedState.statusCounts.sessions == 1 ? "" : "s")", isExpanded: binding(for: .progress)) {
+                SnapshotProgressRailSection(counts: store.derivedState.statusCounts)
+            }
+        }
+    }
+
+    private func binding(for id: InspectorGroupID) -> Binding<Bool> {
+        Binding(
+            get: { expandedGroups.contains(id) },
+            set: { isExpanded in
+                if isExpanded { expandedGroups.insert(id) } else { expandedGroups.remove(id) }
+            }
+        )
+    }
+}
+
 struct InspectorGroup<Content: View>: View {
     var title: String
     var subtitle: String?
