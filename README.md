@@ -66,6 +66,13 @@ Instead, it experiments with a few product ideas on top of Repo Prompt state:
 
 ## Current product shape
 
+Cockpit currently has two implementation paths:
+
+- the existing Electron/TypeScript app, which remains the packaged preview and reference implementation
+- the native SwiftPM macOS app under `Native/`, which now covers the live/demo provider seam, reducers, status item/menu model, window modes, SwiftUI cockpit, and executable checks
+
+See [`docs/native-migration-2026-05-14.md`](docs/native-migration-2026-05-14.md) for the native migration and release checklist.
+
 Cockpit currently supports:
 
 - live `rp-cli` provider mode
@@ -95,7 +102,7 @@ That contract is part of the product, not an implementation detail:
 
 ## How to use
 
-> Repo Prompt Cockpit currently ships as an unsigned macOS preview build.
+> Repo Prompt Cockpit currently ships packaged as an unsigned Electron macOS preview build. The Swift native rewrite is also packaged as an unsigned, non-notarized native `.app` preview for parity validation.
 
 1. Download the latest `.dmg` or `.zip` from [GitHub Releases](https://github.com/zakelfassi/repo-prompt-cockpit/releases/latest).
 2. Open the `.dmg` or unzip the archive.
@@ -114,13 +121,13 @@ Cockpit is unsigned and not notarized today. That is expected for the preview re
 
 ## How to build locally / contribute
 
-Install dependencies:
+Install dependencies for the Electron/TypeScript implementation:
 
 ```bash
 pnpm install
 ```
 
-Run with the live Repo Prompt provider:
+Run the Electron app with the live Repo Prompt provider:
 
 ```bash
 pnpm dev
@@ -134,7 +141,31 @@ RP_CONTROL_PLANE_DEMO=1 pnpm dev
 
 Demo mode is the safest path for screenshots, previews, and review when a live Repo Prompt binding is not available.
 
-Build local unsigned macOS preview artifacts:
+Build and check the native SwiftPM app:
+
+```bash
+swift build --package-path Native
+swift run --package-path Native RepoPromptCockpitChecks
+```
+
+Run the native SwiftPM app from source:
+
+```bash
+swift run --package-path Native RepoPromptCockpitApp
+```
+
+The native app defaults to fixture/demo mode. Set `REPOPROMPT_COCKPIT_PROVIDER=live` to exercise the live provider.
+
+Build native preview artifacts:
+
+```bash
+pnpm native:package:preview  # .app, zip, tar.gz
+pnpm native:package:dmg      # .app, zip, tar.gz, and dmg
+```
+
+This stages `release/native-preview/Repo Prompt Cockpit Native.app`, writes `release/native-preview/README.txt`, and creates `release/repo-prompt-cockpit-native-<version>-mac-<arch>.zip`, `.tar.gz`, and, with `native:package:dmg`, `.dmg` artifacts. The bundle includes `Contents/Info.plist`, icon resources, executable permissions, staged bundle validation, and ad-hoc codesigning when `codesign` is available. It is still unsigned for Developer ID and not notarized.
+
+Build local unsigned Electron macOS preview artifacts:
 
 ```bash
 pnpm package:mac
@@ -152,7 +183,7 @@ pnpm package:mac:app  # app bundle only
 pnpm package:mac:dmg  # app bundle, zip, and dmg when hdiutil is available
 ```
 
-The DMG build stages the app with macOS bundle-preserving copy semantics and validates the staged executable, Electron ICU resource, and ad-hoc signature before creating the disk image. The GitHub Actions workflow **macOS Preview Package** can also be run manually from the Actions tab. It runs `pnpm verify`, builds the same unsigned macOS preview artifacts including the DMG, and uploads them as workflow artifacts.
+The DMG build stages the app with macOS bundle-preserving copy semantics and validates the staged executable, Electron ICU resource, and ad-hoc signature before creating the disk image. The GitHub Actions workflow **macOS Preview Package** can also be run manually from the Actions tab. It runs `pnpm verify`, builds the same unsigned Electron macOS preview artifacts including the DMG, stages the native `.app` preview bundle, and uploads both sets as workflow artifacts.
 
 ## Useful environment variables
 
@@ -188,6 +219,8 @@ Before opening a PR, run:
 
 ```bash
 pnpm verify
+swift build --package-path Native
+swift run --package-path Native RepoPromptCockpitChecks
 ```
 
 For targeted checks, these are also wired:
@@ -227,8 +260,11 @@ This repository is ready for source use and unsigned macOS preview releases.
 Supported workflows today:
 
 - download the latest unsigned macOS `.dmg` / `.zip` from [GitHub Releases](https://github.com/zakelfassi/repo-prompt-cockpit/releases/latest)
-- `pnpm dev` for local development
-- `pnpm verify` before opening or merging changes
-- `pnpm package:mac` / `pnpm package:mac:dmg` for local unsigned macOS preview builds; the DMG path validates the staged app before image creation
+- `pnpm dev` for Electron local development
+- `swift run --package-path Native RepoPromptCockpitApp` for native local development
+- `pnpm verify` before opening or merging Electron/TypeScript changes
+- `swift build --package-path Native` and `swift run --package-path Native RepoPromptCockpitChecks` before opening or merging native changes
+- `pnpm package:mac` / `pnpm package:mac:dmg` for local unsigned Electron macOS preview builds; the DMG path validates the staged app before image creation
+- `pnpm native:package:preview` / `pnpm native:package:dmg` for a native `.app` preview bundle under `release/native-preview/` plus `.zip`, `.tar.gz`, and optional `.dmg` archives under `release/`
 
-Developer ID signing, hardened runtime, notarization, auto-update, and fully trusted macOS distribution are follow-on work.
+Developer ID signing, hardened runtime, notarization, auto-update, and fully trusted macOS distribution are follow-on work. Keep the Electron app intact until the native app has passed live/demo/provider/tray/window/test gates in release use.

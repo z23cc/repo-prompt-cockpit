@@ -21,6 +21,14 @@ const forbiddenPathChecks: Array<{ reason: string; test: (file: string) => boole
     reason: 'tracked local Claude settings',
     test: (file) => file === '.claude/settings.local.json',
   },
+  {
+    reason: 'tracked SwiftPM build artifact',
+    test: (file) => file === 'Native/.build' || file.startsWith('Native/.build/'),
+  },
+  {
+    reason: 'tracked release output',
+    test: (file) => file === 'release' || file.startsWith('release/'),
+  },
 ]
 
 const forbiddenContentChecks: Array<{ reason: string; test: (content: string) => boolean }> = [
@@ -40,6 +48,14 @@ const forbiddenContentChecks: Array<{ reason: string; test: (content: string) =>
 
 const contentScanAllowlist = new Set(['scripts/check-release-hygiene.ts'])
 const violations: string[] = []
+
+const gitignore = readFileSync('.gitignore', 'utf8')
+const requiredGitignoreEntries = ['Native/.build/', 'release/']
+for (const entry of requiredGitignoreEntries) {
+  if (!gitignore.split(/\r?\n/).includes(entry)) {
+    violations.push(`.gitignore (missing required ignore entry: ${entry})`)
+  }
+}
 
 for (const file of trackedFiles) {
   for (const check of forbiddenPathChecks) {

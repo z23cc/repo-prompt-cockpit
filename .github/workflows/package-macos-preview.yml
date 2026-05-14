@@ -30,14 +30,29 @@ jobs:
       - name: Verify
         run: pnpm verify
 
-      - name: Build unsigned macOS preview package
+      - name: Build unsigned Electron macOS preview package
         run: pnpm package:mac:dmg
 
-      - name: Upload preview artifacts
+      - name: Upload Electron preview artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: repo-prompt-cockpit-macos-preview
+          name: repo-prompt-cockpit-electron-macos-preview
           path: |
             release/*.zip
             release/*.dmg
+          if-no-files-found: error
+
+      - name: Build native macOS preview bundle
+        run: pnpm native:package:dmg
+
+      - name: Upload native macOS preview artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: repo-prompt-cockpit-native-macos-preview
+          path: |
+            release/repo-prompt-cockpit-native-*.zip
+            release/repo-prompt-cockpit-native-*.tar.gz
+            release/repo-prompt-cockpit-native-*.dmg
+            release/native-preview/Repo Prompt Cockpit Native.app
+            release/native-preview/README.txt
           if-no-files-found: error

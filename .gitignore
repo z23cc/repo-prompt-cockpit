@@ -17,3 +17,6 @@ release/
 *.AppImage
 *.blockmap
 latest*.yml
+
+# SwiftPM build artifacts
+Native/.build/
