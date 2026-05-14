@@ -12,38 +12,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
 
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Verify
-        run: pnpm verify
-
-      - name: Build unsigned Electron macOS preview package
-        run: pnpm package:mac:dmg
-
-      - name: Upload Electron preview artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: repo-prompt-cockpit-electron-macos-preview
-          path: |
-            release/*.zip
-            release/*.dmg
-          if-no-files-found: error
+      - name: Verify native source
+        run: npm run verify
 
       - name: Build native macOS preview bundle
-        run: pnpm native:package:dmg
+        run: npm run package:dmg
 
       - name: Upload native macOS preview artifacts
         uses: actions/upload-artifact@v4

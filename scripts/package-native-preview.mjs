@@ -13,13 +13,6 @@ import { arch, platform } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-interface PackageMetadata {
-  productName?: string
-  version?: string
-  description?: string
-  license?: string
-}
-
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const nativeRoot = join(repoRoot, 'Native')
 const releaseParent = join(repoRoot, 'release')
@@ -28,7 +21,7 @@ const executableName = 'RepoPromptCockpitApp'
 const appName = 'Repo Prompt Cockpit Native'
 const bundleIdentifier = 'com.repoprompt.cockpit.native'
 const artifactArch = arch() === 'x64' ? 'x64' : arch() === 'arm64' ? 'arm64' : arch()
-const packageMetadata = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8')) as PackageMetadata
+const packageMetadata = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8'))
 const version = packageMetadata.version ?? 'unknown'
 const appPath = join(workRoot, `${appName}.app`)
 const contentsPath = join(appPath, 'Contents')
@@ -38,8 +31,8 @@ const dmgRoot = join(workRoot, 'dmg-root')
 const stagedAppPath = join(dmgRoot, basename(appPath))
 const appExecutablePath = join(macOSPath, executableName)
 const customBundleIconFile = 'repoprompt-cockpit.icns'
-let bundleIconFile: string | undefined = customBundleIconFile
-const logoPngPath = join(repoRoot, 'src', 'renderer', 'assets', 'repoprompt-cockpit-logo.png')
+let bundleIconFile = customBundleIconFile
+const logoPngPath = join(repoRoot, 'Native', 'Resources', 'repoprompt-cockpit-logo.png')
 const bundleIconPath = join(resourcesPath, customBundleIconFile)
 const iconsetPath = join(workRoot, 'repoprompt-cockpit-native.iconset')
 const zipPath = join(releaseParent, `repo-prompt-cockpit-native-${version}-mac-${artifactArch}.zip`)
@@ -50,12 +43,12 @@ const shouldZip = !args.has('--skip-zip')
 const shouldDmg = args.has('--dmg') && !args.has('--skip-dmg')
 let didAdhocSign = false
 
-function fail(message: string): never {
+function fail(message) {
   console.error(message)
   process.exit(1)
 }
 
-function run(command: string, args: string[], options: { capture?: boolean; optional?: boolean } = {}): string {
+function run(command, args, options = {}) {
   console.log(`$ ${[command, ...args].join(' ')}`)
   const result = spawnSync(command, args, {
     cwd: repoRoot,
@@ -71,7 +64,7 @@ function run(command: string, args: string[], options: { capture?: boolean; opti
   return (result.stdout ?? '').trim()
 }
 
-function commandExists(command: string): boolean {
+function commandExists(command) {
   const result = spawnSync('/usr/bin/env', ['sh', '-c', `command -v ${command} >/dev/null 2>&1`], {
     cwd: repoRoot,
     stdio: 'ignore',
@@ -79,20 +72,20 @@ function commandExists(command: string): boolean {
   return result.status === 0
 }
 
-function tryRun(command: string, args: string[]): boolean {
+function tryRun(command, args) {
   const result = spawnSync(command, args, { cwd: repoRoot, stdio: 'inherit' })
   return result.status === 0
 }
 
-function requirePath(path: string, description: string): void {
+function requirePath(path, description) {
   if (!existsSync(path)) fail(`Expected ${description} is missing: ${path}`)
 }
 
-function escapePlistValue(value: string): string {
+function escapePlistValue(value) {
   return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
 }
 
-function writeInfoPlist(): void {
+function writeInfoPlist() {
   const plist = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -132,7 +125,7 @@ function writeInfoPlist(): void {
   writeFileSync(join(contentsPath, 'PkgInfo'), 'APPL????')
 }
 
-function writeBundleIcon(): void {
+function writeBundleIcon() {
   if (!existsSync(logoPngPath)) {
     bundleIconFile = undefined
     console.warn(`Native app icon source missing; continuing without CFBundleIconFile: ${logoPngPath}`)
@@ -146,7 +139,7 @@ function writeBundleIcon(): void {
 
   rmSync(iconsetPath, { recursive: true, force: true })
   mkdirSync(iconsetPath, { recursive: true })
-  const iconFiles: Array<{ size: number; scale: 1 | 2; filename: string }> = [
+  const iconFiles = [
     { size: 16, scale: 1, filename: 'icon_16x16.png' },
     { size: 16, scale: 2, filename: 'icon_16x16@2x.png' },
     { size: 32, scale: 1, filename: 'icon_32x32.png' },
@@ -169,7 +162,7 @@ function writeBundleIcon(): void {
   rmSync(iconsetPath, { recursive: true, force: true })
 }
 
-function writeReadme(): void {
+function writeReadme() {
   const readme = [
     'Repo Prompt Cockpit native macOS preview',
     `Version: ${version}`,
@@ -179,13 +172,12 @@ function writeReadme(): void {
     'Ad-hoc codesign: attempted when codesign is available',
     '',
     'This is an unsigned, non-notarized native preview bundle for internal validation.',
-    shouldDmg ? `DMG artifact: ${basename(dmgPath)}` : 'DMG creation skipped by default; run pnpm native:package:dmg when a disk image is needed.',
-    'The Electron preview packaging path remains preserved separately.',
+    shouldDmg ? `DMG artifact: ${basename(dmgPath)}` : 'DMG creation skipped by default; run node scripts/package-native-preview.mjs --dmg when a disk image is needed.',
     '',
     'Validation gate:',
     '  swift build --package-path Native -c release',
     '  swift run --package-path Native RepoPromptCockpitChecks',
-    '  pnpm native:package:preview',
+    '  node scripts/package-native-preview.mjs',
     '',
   ].join('\n')
 
@@ -193,7 +185,7 @@ function writeReadme(): void {
   writeFileSync(join(workRoot, 'README.txt'), readme)
 }
 
-function validateAppBundle(pathToApp = appPath): void {
+function validateAppBundle(pathToApp = appPath) {
   const infoPlistPath = join(pathToApp, 'Contents', 'Info.plist')
   const executablePath = join(pathToApp, 'Contents', 'MacOS', executableName)
   requirePath(pathToApp, 'native app bundle')
@@ -263,5 +255,5 @@ console.log(`- ${appPath}`)
 if (shouldZip) console.log(`- ${zipPath}`)
 console.log(`- ${tarPath}`)
 if (shouldDmg) console.log(`- ${dmgPath}`)
-if (!shouldDmg) console.log('DMG creation skipped by default; run `pnpm native:package:dmg` on macOS if a disk image is needed.')
+if (!shouldDmg) console.log('DMG creation skipped by default; run `node scripts/package-native-preview.mjs --dmg` on macOS if a disk image is needed.')
 console.log('Developer ID signing and notarization were not performed for this private preview build.')
