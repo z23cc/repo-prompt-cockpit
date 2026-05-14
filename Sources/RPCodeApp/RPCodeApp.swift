@@ -1,14 +1,14 @@
 import AppKit
 import Combine
-import RepoPromptCockpitCore
+import RPCodeCore
 import SwiftUI
 
 @main
-struct RepoPromptCockpitApp: App {
+struct RPCodeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        WindowGroup("Repo Prompt Cockpit") {
+        WindowGroup("RP Code") {
             ContentView(store: appDelegate.store, setWindowMode: appDelegate.setWindowModeFromCockpit(_:))
         }
     }
@@ -204,7 +204,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         for window in NSApp.windows where window.canBecomeKey {
             window.delegate = self
             window.isReleasedWhenClosed = false
-            window.title = "Repo Prompt Cockpit"
+            window.title = "RP Code"
         }
     }
 
@@ -331,10 +331,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 }
 
 private enum AppShellPreferences {
-    private static let modeKey = "RepoPromptCockpit.windowMode"
-    private static let desktopFrameKey = "RepoPromptCockpit.windowFrame.desktop"
-    private static let minimalFrameKey = "RepoPromptCockpit.windowFrame.minimal"
-    private static let layoutVersionKey = "RepoPromptCockpit.windowLayoutVersion"
+    private static let modeKey = "RPCode.windowMode"
+    private static let desktopFrameKey = "RPCode.windowFrame.desktop"
+    private static let minimalFrameKey = "RPCode.windowFrame.minimal"
+    private static let layoutVersionKey = "RPCode.windowLayoutVersion"
     private static let currentLayoutVersion = 7
 
     static func migrateLayoutIfNeeded() {

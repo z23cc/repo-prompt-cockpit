@@ -91,7 +91,7 @@ public struct DashboardDerivedState: Equatable, Sendable {
         capabilityRows: [],
         privacyBanner: PrivacyBannerView(label: "Read-only cockpit", detail: "Transcript/log bodies are not loaded or uploaded by default.", severity: .safe),
         visibleSessions: [],
-        clipboardSummary: "Repo Prompt Cockpit\nNo snapshot available."
+        clipboardSummary: "RP Code\nNo snapshot available."
     )
 
     public static func derive(from snapshot: ControlPlaneSnapshot, filter: DashboardSessionFilter) -> DashboardDerivedState {

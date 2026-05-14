@@ -14,15 +14,14 @@ import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const nativeRoot = join(repoRoot, 'Native')
+const nativeRoot = repoRoot
 const releaseParent = join(repoRoot, 'release')
 const workRoot = join(releaseParent, 'native-preview')
-const executableName = 'RepoPromptCockpitApp'
-const appName = 'Repo Prompt Cockpit Native'
-const bundleIdentifier = 'com.repoprompt.cockpit.native'
+const executableName = 'rp-code'
+const appName = 'RP Code'
+const bundleIdentifier = 'com.repoprompt.rpcode'
 const artifactArch = arch() === 'x64' ? 'x64' : arch() === 'arm64' ? 'arm64' : arch()
-const packageMetadata = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8'))
-const version = packageMetadata.version ?? 'unknown'
+const version = process.env.RP_CODE_VERSION ?? '0.1.2'
 const appPath = join(workRoot, `${appName}.app`)
 const contentsPath = join(appPath, 'Contents')
 const macOSPath = join(contentsPath, 'MacOS')
@@ -30,14 +29,14 @@ const resourcesPath = join(contentsPath, 'Resources')
 const dmgRoot = join(workRoot, 'dmg-root')
 const stagedAppPath = join(dmgRoot, basename(appPath))
 const appExecutablePath = join(macOSPath, executableName)
-const customBundleIconFile = 'repoprompt-cockpit.icns'
+const customBundleIconFile = 'rp-code.icns'
 let bundleIconFile = customBundleIconFile
-const logoPngPath = join(repoRoot, 'Native', 'Resources', 'repoprompt-cockpit-logo.png')
+const logoPngPath = join(repoRoot, 'Resources', 'rp-code-logo.png')
 const bundleIconPath = join(resourcesPath, customBundleIconFile)
-const iconsetPath = join(workRoot, 'repoprompt-cockpit-native.iconset')
-const zipPath = join(releaseParent, `repo-prompt-cockpit-native-${version}-mac-${artifactArch}.zip`)
-const dmgPath = join(releaseParent, `repo-prompt-cockpit-native-${version}-mac-${artifactArch}.dmg`)
-const tarPath = join(releaseParent, `repo-prompt-cockpit-native-${version}-mac-${artifactArch}.tar.gz`)
+const iconsetPath = join(workRoot, 'rp-code.iconset')
+const zipPath = join(releaseParent, `rp-code-${version}-mac-${artifactArch}.zip`)
+const dmgPath = join(releaseParent, `rp-code-${version}-mac-${artifactArch}.dmg`)
+const tarPath = join(releaseParent, `rp-code-${version}-mac-${artifactArch}.tar.gz`)
 const args = new Set(process.argv.slice(2))
 const shouldZip = !args.has('--skip-zip')
 const shouldDmg = args.has('--dmg') && !args.has('--skip-dmg')
@@ -164,7 +163,7 @@ function writeBundleIcon() {
 
 function writeReadme() {
   const readme = [
-    'Repo Prompt Cockpit native macOS preview',
+    'RP Code native macOS preview',
     `Version: ${version}`,
     '',
     `App bundle: ${appName}.app`,
@@ -175,8 +174,8 @@ function writeReadme() {
     shouldDmg ? `DMG artifact: ${basename(dmgPath)}` : 'DMG creation skipped by default; run node scripts/package-native-preview.mjs --dmg when a disk image is needed.',
     '',
     'Validation gate:',
-    '  swift build --package-path Native -c release',
-    '  swift run --package-path Native RepoPromptCockpitChecks',
+    '  swift build -c release',
+    '  swift run RPCodeChecks',
     '  node scripts/package-native-preview.mjs',
     '',
   ].join('\n')
@@ -207,7 +206,7 @@ if (platform() !== 'darwin') {
 }
 
 run('swift', ['build', '--package-path', nativeRoot, '-c', 'release'])
-run('swift', ['run', '--package-path', nativeRoot, 'RepoPromptCockpitChecks'])
+run('swift', ['run', '--package-path', nativeRoot, 'RPCodeChecks'])
 
 const binPath = execFileSync('swift', ['build', '--package-path', nativeRoot, '-c', 'release', '--show-bin-path'], {
   cwd: repoRoot,

@@ -74,7 +74,7 @@ public func buildStatusMenuModel(
         return StatusMenuModel(
             statusTitle: "RPC …",
             items: compactMenuItems([
-                header("Repo Prompt Cockpit"),
+                header("RP Code"),
                 row("No snapshot available", subtitle: "Refresh to collect metadata-only provider state."),
                 separator(),
                 header("Actions"),

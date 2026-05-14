@@ -1,5 +1,5 @@
 import Foundation
-import RepoPromptCockpitCore
+import RPCodeCore
 
 func dashboardDomainMatchesTypeScriptParity() throws {
     let generatedAt = "2026-05-14T00:00:00Z"

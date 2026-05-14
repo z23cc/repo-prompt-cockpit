@@ -1,4 +1,4 @@
-import RepoPromptCockpitCore
+import RPCodeCore
 import SwiftUI
 
 struct SectionHeader: View {

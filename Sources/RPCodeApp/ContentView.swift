@@ -1,5 +1,5 @@
 import AppKit
-import RepoPromptCockpitCore
+import RPCodeCore
 import SwiftUI
 
 struct ContentView: View {

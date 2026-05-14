@@ -1,5 +1,5 @@
 import Foundation
-import RepoPromptCockpitCore
+import RPCodeCore
 
 try await demoFixtureIsDeterministicAndPrivacyMarked()
 try snapshotEnumsRoundTripWithTypeScriptRawValues()
@@ -25,7 +25,7 @@ try await dashboardStoreShellActionsDriveSummaryAndMode()
 try await presentationHelpersPreserveTruthfulLabels()
 try await presentationHelpersClampProgressAndFallbackSelection()
 try presentationHelpersDoNotCountPlaceholderAsRealActivity()
-print("RepoPromptCockpitChecks passed")
+print("RPCodeChecks passed")
 
 func check(_ condition: @autoclosure () -> Bool, _ message: String) throws {
     if !condition() { throw CheckFailure(message) }
@@ -103,7 +103,7 @@ func summaryIsMetadataOnlyAndBounded() async throws {
     let snapshot = try await DemoFixtureProvider(now: { "2026-04-28T00:00:00Z" }).collectSnapshot()
     let summary = summarizeForClipboard(snapshot: snapshot, maxChars: 220)
 
-    try check(summary.contains("Repo Prompt Cockpit (demo-fixture, fixture-backed)"), "summary should identify fixture provider")
+    try check(summary.contains("RP Code (demo-fixture, fixture-backed)"), "summary should identify fixture provider")
     try check(summary.contains("Sessions: 5"), "summary should include session count")
     try check(summary.contains("Focus next [fixture]: Release Gate"), "summary should include metadata-only focus")
     try check(summary.count <= 220, "summary should be bounded")

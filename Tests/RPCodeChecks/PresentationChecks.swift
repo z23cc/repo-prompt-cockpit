@@ -1,5 +1,5 @@
 import Foundation
-import RepoPromptCockpitCore
+import RPCodeCore
 
 func presentationHelpersPreserveTruthfulLabels() async throws {
     let snapshot = try await DemoFixtureProvider(now: { "2026-05-14T00:00:00Z" }).collectSnapshot()

@@ -1,5 +1,5 @@
 import Foundation
-import RepoPromptCockpitCore
+import RPCodeCore
 
 func statusMenuModelGroupsFixtureSnapshot() async throws {
     let snapshot = try await DemoFixtureProvider(now: { "2026-04-28T00:00:00Z" }).collectSnapshot()
@@ -49,7 +49,7 @@ func dashboardStoreShellActionsDriveSummaryAndMode() async throws {
     _ = await store.refresh(reason: .initial)
 
     let summary = store.copySummaryText()
-    try check(summary.contains("Repo Prompt Cockpit (demo-fixture, fixture-backed)"), "store copy summary should come from deterministic reducer output")
+    try check(summary.contains("RP Code (demo-fixture, fixture-backed)"), "store copy summary should come from deterministic reducer output")
     try check(summary.contains("Focus next [fixture]: Release Gate"), "store copy summary should include focus reducer output")
 
     try check(store.windowMode == .desktop, "store should start in desktop mode")

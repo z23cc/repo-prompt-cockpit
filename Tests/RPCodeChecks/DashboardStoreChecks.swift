@@ -1,5 +1,5 @@
 import Foundation
-import RepoPromptCockpitCore
+import RPCodeCore
 
 @MainActor
 func dashboardStoreCoalescesRefreshes() async throws {

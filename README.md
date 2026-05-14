@@ -1,14 +1,23 @@
-# Repo Prompt Cockpit
+# RP Code
 
-Repo Prompt Cockpit is a native macOS, read-only desktop companion for [Repo Prompt](https://repoprompt.com/).
+RP Code is a native macOS, read-only desktop companion for [Repo Prompt](https://repoprompt.com/).
 
 It gives operators a compact control plane for live Repo Prompt sessions, workspace/context metadata, sub-agent state, diagnostics, and a minimal always-on-top monitoring mode — without collecting transcript, log, prompt, artifact, or result bodies by default.
 
-## Current product shape
+## Repository shape
 
-The project is now Swift native-first. The previous Electron/TypeScript shell has been retired from this repository; the app implementation lives under `Native/`.
+This is now a root-level Swift package:
 
-Cockpit supports:
+- `Package.swift`
+- `Sources/RPCodeCore`
+- `Sources/RPCodeApp`
+- `Tests/RPCodeChecks`
+- `Resources/`
+- `scripts/` for dependency-free Node packaging/release-hygiene helpers
+
+The previous Electron/TypeScript shell has been retired.
+
+## Features
 
 - live `rp-cli` provider mode
 - deterministic fixture/demo mode
@@ -20,9 +29,7 @@ Cockpit supports:
 - Repo Prompt tab/context metadata folded into the sidebar
 - capability and diagnostic reporting
 - deterministic metadata-only copy summary
-- unsigned native `.app`, `.zip`, `.tar.gz`, and `.dmg` preview packaging
-
-See [`docs/native-migration-2026-05-14.md`](docs/native-migration-2026-05-14.md) for migration notes and release follow-ups.
+- unsigned native `.app`, `.zip`, `.tar.gz`, and optional `.dmg` preview packaging
 
 ## Privacy and read-only contract
 
@@ -47,51 +54,39 @@ Requirements:
 Run checks:
 
 ```bash
-swift build --package-path Native
-swift run --package-path Native RepoPromptCockpitChecks
+swift build
+swift run RPCodeChecks
 node scripts/check-release-hygiene.mjs
-```
-
-Or via npm scripts:
-
-```bash
-npm run verify
 ```
 
 Run the app in fixture mode:
 
 ```bash
-swift run --package-path Native RepoPromptCockpitApp
+swift run rp-code
 ```
 
 Run the app in live mode:
 
 ```bash
-REPOPROMPT_COCKPIT_PROVIDER=live swift run --package-path Native RepoPromptCockpitApp
+REPOPROMPT_COCKPIT_PROVIDER=live swift run rp-code
 ```
 
-Build unsigned native preview artifacts:
+Build unsigned preview artifacts:
 
 ```bash
-npm run package:preview  # .app, .zip, .tar.gz
-npm run package:dmg      # .app, .zip, .tar.gz, .dmg
+node scripts/package-native-preview.mjs        # .app, .zip, .tar.gz
+node scripts/package-native-preview.mjs --dmg  # .app, .zip, .tar.gz, .dmg
 ```
 
-Artifacts are written under `release/`, including `release/native-preview/Repo Prompt Cockpit Native.app`.
-
-## Useful environment variables
-
-| Var | Default | Purpose |
-| --- | --- | --- |
-| `REPOPROMPT_COCKPIT_PROVIDER` | `fixture` | Set to `live` to use the real `rp-cli` provider. |
+Artifacts are written under `release/`, including `release/native-preview/RP Code.app`.
 
 ## Where to inspect body content
 
-Cockpit deliberately keeps transcript/log/artifact/result bodies out of the desktop UI by default.
+RP Code deliberately keeps transcript/log/artifact/result bodies out of the desktop UI by default.
 
 If you need body-level detail:
 
-1. Use Cockpit's workspace/context metadata to identify the matching Repo Prompt workspace and tab.
+1. Use RP Code's workspace/context metadata to identify the matching Repo Prompt workspace and tab.
 2. Switch to that session inside Repo Prompt itself.
 3. Inspect Logs / Results / Artifacts there.
 

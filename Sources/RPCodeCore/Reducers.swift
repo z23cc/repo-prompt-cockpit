@@ -510,7 +510,7 @@ public func createDeterministicSummary(snapshot: ControlPlaneSnapshot, maxChars:
     let counts = deriveStatusCounts(from: snapshot)
     let attention = deriveAttentionItems(from: snapshot).first
     var lines = [
-        "Repo Prompt Cockpit (\(snapshot.provider.rawValue)\(snapshot.summarySource == .fixture ? ", fixture-backed" : ""))",
+        "RP Code (\(snapshot.provider.rawValue)\(snapshot.summarySource == .fixture ? ", fixture-backed" : ""))",
         "Workspaces: \(snapshot.windows.count); Sessions: \(counts.sessions); Running: \(counts.running); Waiting: \(counts.waitingForInput); Blocked: \(counts.blocked); Failed: \(counts.failed); Completed: \(counts.completed)"
     ]
     if let attention {

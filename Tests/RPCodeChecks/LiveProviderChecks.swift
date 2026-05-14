@@ -1,5 +1,5 @@
 import Foundation
-import RepoPromptCockpitCore
+import RPCodeCore
 
 private let controlPlaneContextId = "0D1D0428-949A-485F-A3B0-6924EE9EC5CF"
 private let secondaryWorkspaceContextId = "28680F75-90F5-4E72-ADA9-6710165CB25C"
@@ -127,7 +127,7 @@ private final class RecordingRunner: RpCliSubprocessRunner, @unchecked Sendable 
 
 private func fixtureText(_ name: String) throws -> String {
     var url = URL(fileURLWithPath: #filePath)
-    for _ in 0..<4 { url.deleteLastPathComponent() }
+    for _ in 0..<3 { url.deleteLastPathComponent() }
     url.appendPathComponent("test/fixtures/\(name)")
     return try String(contentsOf: url, encoding: .utf8)
 }

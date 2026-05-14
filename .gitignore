@@ -1,4 +1,4 @@
-node_modules/
+.build/
 dist/
 coverage/
 .DS_Store
@@ -9,14 +9,12 @@ coverage/
 prompt-exports/
 .claude/settings.local.json
 
-# Electron/package artifacts
-out/
+# Package artifacts
 release/
 *.dmg
+*.zip
+*.tar.gz
 *.exe
 *.AppImage
 *.blockmap
 latest*.yml
-
-# SwiftPM build artifacts
-Native/.build/

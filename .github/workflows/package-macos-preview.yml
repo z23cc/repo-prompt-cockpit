@@ -17,20 +17,20 @@ jobs:
         with:
           node-version: 22
 
-      - name: Verify native source
-        run: npm run verify
+      - name: Verify Swift package
+        run: swift build && swift run RPCodeChecks && node scripts/check-release-hygiene.mjs
 
       - name: Build native macOS preview bundle
-        run: npm run package:dmg
+        run: node scripts/package-native-preview.mjs --dmg
 
       - name: Upload native macOS preview artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: repo-prompt-cockpit-native-macos-preview
+          name: rp-code-macos-preview
           path: |
-            release/repo-prompt-cockpit-native-*.zip
-            release/repo-prompt-cockpit-native-*.tar.gz
-            release/repo-prompt-cockpit-native-*.dmg
-            release/native-preview/Repo Prompt Cockpit Native.app
+            release/rp-code-*.zip
+            release/rp-code-*.tar.gz
+            release/rp-code-*.dmg
+            release/native-preview/RP Code.app
             release/native-preview/README.txt
           if-no-files-found: error

@@ -12,7 +12,7 @@ const forbiddenPathChecks = [
   { reason: 'tracked .omx local state', test: (file) => file === '.omx' || file.startsWith('.omx/') },
   { reason: 'tracked prompt-exports local state', test: (file) => file === 'prompt-exports' || file.startsWith('prompt-exports/') },
   { reason: 'tracked local Claude settings', test: (file) => file === '.claude/settings.local.json' },
-  { reason: 'tracked SwiftPM build artifact', test: (file) => file === 'Native/.build' || file.startsWith('Native/.build/') },
+  { reason: 'tracked SwiftPM build artifact', test: (file) => file === '.build' || file.startsWith('.build/') },
   { reason: 'tracked release output', test: (file) => file === 'release' || file.startsWith('release/') },
   { reason: 'retired Electron/TypeScript source', test: (file) => file === 'src' || file.startsWith('src/') || file === 'electron-main.cjs' },
 ]
@@ -29,7 +29,7 @@ const contentScanAllowlist = new Set(['scripts/check-release-hygiene.mjs'])
 const violations = []
 
 const gitignore = readFileSync('.gitignore', 'utf8')
-const requiredGitignoreEntries = ['Native/.build/', 'release/']
+const requiredGitignoreEntries = ['.build/', 'release/']
 for (const entry of requiredGitignoreEntries) {
   if (!gitignore.split(/\r?\n/).includes(entry)) violations.push(`.gitignore (missing required ignore entry: ${entry})`)
 }

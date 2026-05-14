@@ -19,11 +19,11 @@ jobs:
         with:
           node-version: 22
 
-      - name: Build native app
-        run: swift build --package-path Native
+      - name: Build Swift package
+        run: swift build
 
-      - name: Run native checks
-        run: swift run --package-path Native RepoPromptCockpitChecks
+      - name: Run checks
+        run: swift run RPCodeChecks
 
       - name: Release hygiene
         run: node scripts/check-release-hygiene.mjs
